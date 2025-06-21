@@ -148,21 +148,21 @@ float chessboard(vec2 uv)
 }
 
 void main() {
-  vec2 p1 = (gl_FragCoord.xy - u_resolution.xy * 0.5) / u_resolution.y;
+  // vec2 p1 = (gl_FragCoord.xy - u_resolution.xy * 0.5) / u_resolution.y;
   //
   // float d1 = sdBox(p1, vec2(200.0, 30.0) / u_resolution.y);
-  float d1 = sdCircle(p1, 200.0 / u_resolution.y);
+  // float d1 = sdCircle(p1, 200.0 / u_resolution.y);
   // float a1 = smoothstep(0.0, 0.003, d1);
 
-  vec2 p2 = (gl_FragCoord.xy - u_mouse) / u_resolution.y;
+  // vec2 p2 = (gl_FragCoord.xy - u_mouse) / u_resolution.y;
   // float d2 = sdCircle(p2, 100.0 / u_resolution.y);
   // float d2 = sdQuadraticCircle(p2 / 0.2) * 0.2;
-  float d2 = sdSuperellipse(p2, 200.0 / u_resolution.y, 4.0).x;
+  // float d2 = sdSuperellipse(p2, 200.0 / u_resolution.y, 4.0).x;
   // float d2 = sdRoundBox(p2, vec2(300.0, 100.0) / u_resolution.y, vec4(100.0 / u_resolution.y));
 
   //
 
-  float merged = smin(d1, d2, 0.05);
+  // float merged = smin(d1, d2, 0.05);
 
   // float px = 2.0/u_resolution.y;
   // vec3 col = (merged>0.0) ? vec3(0.9,0.6,0.3) : vec3(0.65,0.85,1.0);
@@ -174,10 +174,45 @@ void main() {
   // col = mix( col, vec3(1.0), 1.0-smoothstep(0.003-px,0.003+px,abs(merged)));
   // fragColor = vec4(col,1.0);
 
-  float smoothed = smoothstep(0.0, 0.0005, merged);
+  // float smoothed = smoothstep(0.0, 0.0005, merged);
   // fragColor = vec4(vec3(smoothed), 1.0);
 
-  float chess = chessboard(gl_FragCoord.xy / u_resolution.xy * 10.);
-  fragColor = vec4(mix(vec3(chess), vec3(smoothed), 0.5), 1.0);
+
+  vec2 p1 = (gl_FragCoord.xy - u_resolution.xy * 0.5) / u_resolution.y;
+  vec2 p2 = (gl_FragCoord.xy - u_mouse) / u_resolution.y;
+  float d1 = sdCircle(p1, 200.0 / u_resolution.y);
+  float d2 = sdSuperellipse(p2, 200.0 / u_resolution.y, 4.0).x;
+
+  float merged = smin(d1, d2, 0.05);
+  // float smoothed = smoothstep(0.0, 0.0005, merged);
+
+  vec4 BgColor;
+  vec2 bguv = gl_FragCoord.xy / u_resolution.y * 10.;
+  if (merged < 0.0) {
+    // blur background:
+    // gaussian blur
+    float Pi = 6.28318530718; // Pi*2
+    // GAUSSIAN BLUR SETTINGS {{{
+    float Directions =64.0; // BLUR DIRECTIONS (Default 16.0 - More is better but slower)
+    float Quality = 8.0; // BLUR QUALITY (Default 4.0 - More is better but slower)
+    float Size = 400.0; // BLUR SIZE (Radius)
+    // }}}
+    vec2 Radius = Size/u_resolution.xy;
+    // chess board bg
+
+    BgColor = vec4(vec3(chessboard(bguv)), 1.0);
+    for( float d=0.0; d<Pi; d+=Pi/Directions) {
+      for(float i=1.0/Quality; i<=1.0; i+=1.0/Quality) {
+        BgColor += vec4(vec3(chessboard(bguv + vec2(cos(d),sin(d))*Radius*i)), 1.0); // texture( iChannel0, uv+vec2(cos(d),sin(d))*Radius*i);
+      }
+    }
+    BgColor /= Quality * Directions - 15.0;
+  } else {
+    BgColor = vec4(vec3(chessboard(bguv)), 1.0);
+  }
+
+
+  float smoothed = smoothstep(0.0, 0.0005, merged);
+  fragColor = vec4(mix(vec3(BgColor), vec3(smoothed), 0.), 1.0);
 
 }
