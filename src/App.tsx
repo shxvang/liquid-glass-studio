@@ -36,7 +36,7 @@ function App() {
       min: 1,
       max: 200,
       step: 1,
-      value: 60,
+      value: 5,
     },
     mergeRate: {
       label: '融合度',
@@ -44,6 +44,10 @@ function App() {
       max: 0.3,
       step: 0.01,
       value: 0.05,
+    },
+    tint: {
+      label: '色调',
+      value: { r: 200, b: 125, g: 106, a: 1 },
     },
     形状设置: folder({
       shapeWidth: {
@@ -72,9 +76,9 @@ function App() {
         min: 2,
         max: 7,
         step: 0.01,
-        value: 5
-      }
-    })
+        value: 5,
+      },
+    }),
   }));
 
   const stateRef = useRef<{
@@ -189,7 +193,7 @@ function App() {
           fragment: FragmentBgVblurShader,
         },
         inputs: {
-          u_prevPassTexture: 'bgPass'
+          u_prevPassTexture: 'bgPass',
         },
       },
       {
@@ -199,7 +203,7 @@ function App() {
           fragment: FragmentBgHblurShader,
         },
         inputs: {
-          u_prevPassTexture: 'vBlurPass'
+          u_prevPassTexture: 'vBlurPass',
         },
       },
       {
@@ -210,10 +214,10 @@ function App() {
         },
         inputs: {
           u_blurredBg: 'hBlurPass',
-          u_bg: 'bgPass'
+          u_bg: 'bgPass',
         },
-        outputToScreen: true
-      }
+        outputToScreen: true,
+      },
     ]);
 
     // renderer.addPass(
@@ -252,7 +256,10 @@ function App() {
           Math.round(canvasInfo.height * canvasInfo.dpr),
         );
         renderer.resize(canvasInfo.width * canvasInfo.dpr, canvasInfo.height * canvasInfo.dpr);
-        renderer.setUniform('u_resolution', [canvasInfo.width * canvasInfo.dpr, canvasInfo.height * canvasInfo.dpr]);
+        renderer.setUniform('u_resolution', [
+          canvasInfo.width * canvasInfo.dpr,
+          canvasInfo.height * canvasInfo.dpr,
+        ]);
         lastState.canvasInfo = canvasInfo;
       }
 
@@ -262,17 +269,30 @@ function App() {
       renderer.setUniforms({
         u_blurWeights: stateRef.current.blurWeights,
         u_blurRadius: stateRef.current.controls.blurRadius,
-      })
+      });
 
       renderer.render({
         mainPass: {
           u_mouse: [stateRef.current.canvasPointerPos.x, stateRef.current.canvasPointerPos.y],
           u_shapeWidth: stateRef.current.controls.shapeWidth,
           u_shapeHeight: stateRef.current.controls.shapeHeight,
-          u_shapeRadius: Math.min(stateRef.current.controls.shapeWidth, stateRef.current.controls.shapeHeight) / 2 * stateRef.current.controls.shapeRadius / 100,
+          u_shapeRadius:
+            ((Math.min(
+              stateRef.current.controls.shapeWidth,
+              stateRef.current.controls.shapeHeight,
+            ) /
+              2) *
+              stateRef.current.controls.shapeRadius) /
+            100,
           u_shapeRoundness: stateRef.current.controls.shapeRoundness,
           u_mergeRate: stateRef.current.controls.mergeRate,
-        }
+          u_tint: [
+            stateRef.current.controls.tint.r / 255,
+            stateRef.current.controls.tint.g / 255,
+            stateRef.current.controls.tint.b / 255,
+            stateRef.current.controls.tint.a,
+          ],
+        },
       });
     };
     raf = requestAnimationFrame(render);

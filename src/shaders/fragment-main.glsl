@@ -13,6 +13,7 @@ uniform float u_shapeWidth;
 uniform float u_shapeHeight;
 uniform float u_shapeRadius;
 uniform float u_shapeRoundness;
+uniform vec4 u_tint;
 
 out vec4 fragColor;
 
@@ -164,6 +165,8 @@ void main() {
     } else {
       outColor = texture(u_blurredBg, v_uv);
     }
+
+    outColor = mix(outColor, vec4(u_tint.r, u_tint.g, u_tint.b, u_tint.a * 0.5), u_tint.a * 0.2);
 
     // outColor = vec4(mix(texture(u_blurredBg, v_uv).rgb, vec3(1.0), edgeEffect), 1.0);
 
