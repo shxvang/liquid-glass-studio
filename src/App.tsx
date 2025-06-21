@@ -38,6 +38,13 @@ function App() {
       step: 1,
       value: 60,
     },
+    mergeRate: {
+      label: '融合度',
+      min: 0,
+      max: 0.3,
+      step: 0.01,
+      value: 0.05,
+    },
     形状设置: folder({
       shapeWidth: {
         label: '宽',
@@ -264,6 +271,7 @@ function App() {
           u_shapeHeight: stateRef.current.controls.shapeHeight,
           u_shapeRadius: Math.min(stateRef.current.controls.shapeWidth, stateRef.current.controls.shapeHeight) / 2 * stateRef.current.controls.shapeRadius / 100,
           u_shapeRoundness: stateRef.current.controls.shapeRoundness,
+          u_mergeRate: stateRef.current.controls.mergeRate,
         }
       });
     };

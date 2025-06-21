@@ -9,11 +9,13 @@ uniform float u_time;
 
 float chessboard(vec2 uv, float size) {
   float yBars = step(size * 2.0, mod(uv.y, size * 4.0));
-  float xBars = step(size * 2.0, mod(uv.x, size * 4.0));
-  return abs(yBars - xBars);
+  // float xBars = step(size * 2.0, mod(uv.x, size * 4.0));
+  // return abs(yBars - xBars);
+
+  return yBars;
 }
 
 void main() {
-  float chessboardBg = 1.0 - chessboard(gl_FragCoord.xy, 50.0) / 4.0;
+  float chessboardBg = 1.0 - chessboard(gl_FragCoord.xy, 10.0) / 4.0;
   fragColor = vec4(vec3(chessboardBg), 1.0);
 }

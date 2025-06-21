@@ -8,6 +8,7 @@ uniform sampler2D u_bg;
 uniform vec2 u_resolution;
 uniform vec2 u_mouse;
 // uniform float u_time;
+uniform float u_mergeRate;
 uniform float u_shapeWidth;
 uniform float u_shapeHeight;
 uniform float u_shapeRadius;
@@ -85,13 +86,13 @@ float smin(float a, float b, float k) {
   return mix(b, a, h) - k * h * (1.0 - h);
 }
 
-void main() {
-  vec2 p1 = (gl_FragCoord.xy - u_resolution.xy * 0.5) / u_resolution.y;
-  vec2 p2 = (gl_FragCoord.xy - u_mouse) / u_resolution.y;
-  float d1 = sdCircle(p1, 200.0 / u_resolution.y);
+float mainSDF(vec2 p1, vec2 p2, vec2 p) {
+  vec2 p1n = p1 + p / u_resolution.y;
+  vec2 p2n = p2 + p / u_resolution.y;
+  float d1 = sdCircle(p1n, 200.0 / u_resolution.y);
   // float d2 = sdSuperellipse(p2, 200.0 / u_resolution.y, 4.0).x;
   float d2 = roundedRectSDF(
-    p2,
+    p2n,
     vec2(0.0),
     u_shapeWidth / u_resolution.y,
     u_shapeHeight / u_resolution.y,
@@ -99,7 +100,37 @@ void main() {
     u_shapeRoundness
   );
 
-  float merged = smin(d1, d2, 0.1);
+  return smin(d1, d2, u_mergeRate);
+}
+
+vec2 getNormal(vec2 p1, vec2 p2, vec2 p) {
+  // 使用场景尺度自适应的 eps
+  vec2 h = vec2(max(abs(dFdx(p.x)), 0.0001), max(abs(dFdy(p.y)), 0.0001));
+
+  vec2 grad =
+    vec2(
+      mainSDF(p1, p2, p + vec2(h.x, 0.0)) - mainSDF(p1, p2, p - vec2(h.x, 0.0)),
+      mainSDF(p1, p2, p + vec2(0.0, h.y)) - mainSDF(p1, p2, p - vec2(0.0, h.y))
+    ) /
+    (2.0 * h);
+
+  return normalize(grad);
+}
+
+void main() {
+  vec2 p1 = (vec2(0, 0) - u_resolution.xy * 0.5) / u_resolution.y;
+  vec2 p2 = (vec2(0, 0) - u_mouse) / u_resolution.y;
+  // float d1 = sdCircle(p1, 200.0 / u_resolution.y);
+  // float d2 = roundedRectSDF(
+  //   p2,
+  //   vec2(0.0),
+  //   u_shapeWidth / u_resolution.y,
+  //   u_shapeHeight / u_resolution.y,
+  //   u_shapeRadius / u_resolution.y,
+  //   u_shapeRoundness
+  // );
+
+  float merged = mainSDF(p1, p2, gl_FragCoord.xy);
 
   float normalizedInside = merged / u_shapeHeight / u_resolution.y + 1.0;
   float edgeBlendFactor = pow(normalizedInside, 12.0);
@@ -109,16 +140,33 @@ void main() {
     // outColor = texture(u_blurredBg, v_uv);
     // outColor = texture(u_blurredBg, v_uv);
 
-    float px = 2.0 / u_resolution.y;
-    vec3 col = merged > 0.0 ? vec3(0.9, 0.6, 0.3) : vec3(0.65, 0.85, 1.0);
-    // 阴影
-    col *= 1.0 - exp(-0.03 * abs(merged) * u_resolution.y);
-    // 等高线
-    col *= 0.6 + 0.4 * smoothstep(-0.5, 0.5, cos(0.25 * abs(merged) * u_resolution.y));
-    // 外层白框
-    col = mix(col, vec3(1.0), 1.0 - smoothstep(0.003 - px, 0.003 + px, abs(merged)));
+    // float px = 2.0 / u_resolution.y;
+    // vec3 col = merged > 0.0 ? vec3(0.9, 0.6, 0.3) : vec3(0.65, 0.85, 1.0);
+    // // 阴影
+    // col *= 1.0 - exp(-0.03 * abs(merged) * u_resolution.y);
+    // // 等高线
+    // col *= 0.6 + 0.4 * smoothstep(-0.5, 0.5, cos(0.25 * abs(merged) * u_resolution.y));
+    // // 外层白框
+    // col = mix(col, vec3(1.0), 1.0 - smoothstep(0.003 - px, 0.003 + px, abs(merged)));
 
-    outColor = vec4(vec3(1.0 + merged * 8.0), 1.0);
+    float edgeEffect = clamp(1.0 + merged * 0.03 * u_resolution.y, 0.0, 1.0);
+
+    if (edgeEffect > 0.0) {
+      vec2 normal = getNormal(p1, p2, gl_FragCoord.xy);
+      float normalSize = length(normal);
+      vec3 color = vec3((normal * 0.5 + 0.5) * edgeEffect, 0.0);
+      outColor = vec4(color, 1.0);
+
+      // outColor.r = texture(u_blurredBg, v_uv + normal * pow(edgeEffect * 0.5, 2.0) * 0.6).r;
+      // outColor.g = texture(u_blurredBg, v_uv + normal * pow(edgeEffect * 0.5, 2.0) * 0.4).g;
+      // outColor.b = texture(u_blurredBg, v_uv + normal * pow(edgeEffect * 0.5, 2.0) * 0.8).b;
+      outColor = texture(u_blurredBg, v_uv - normal / gl_FragCoord.y * pow(edgeEffect, 5.0) * 30.0);
+    } else {
+      outColor = texture(u_blurredBg, v_uv);
+    }
+
+    // outColor = vec4(mix(texture(u_blurredBg, v_uv).rgb, vec3(1.0), edgeEffect), 1.0);
+
   } else {
     outColor = texture(u_bg, v_uv);
   }
