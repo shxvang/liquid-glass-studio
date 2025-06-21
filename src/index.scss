@@ -1,0 +1,23 @@
+@import '../node_modules/modern-normalize/modern-normalize.css';
+
+body {
+  background-color: #ffffff;
+  background:
+    radial-gradient(
+      circle,
+      transparent 20%,
+      #ffffff 20%,
+      #ffffff 80%,
+      transparent 80%,
+      transparent
+    ),
+    radial-gradient(circle, transparent 20%, #ffffff 20%, #ffffff 80%, transparent 80%, transparent)
+      25px 25px,
+    linear-gradient(#d7d7d7 2px, transparent 2px) 0 -1px,
+    linear-gradient(90deg, #d7d7d7 2px, #ffffff 2px) -1px 0;
+  background-size:
+    50px 50px,
+    50px 50px,
+    25px 25px,
+    25px 25px;
+}
