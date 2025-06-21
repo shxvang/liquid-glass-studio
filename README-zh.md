@@ -4,11 +4,26 @@
 
 Apple Liquid Glass UI 在 Web 平台上的高保真复刻，基于 WebGL2 和 Shader实现。力求涵盖尽可能多的 Liquid Glass 特性，并提供细致的参数控制。
 
+<p align="center">
+<img src="./.github/assets/title-video.gif" width="480" >
+</p>
+
 ## 在线演示
 
 https://liquid-glass-studio.vercel.app/
 
 ## 截图预览
+
+<table align="center">
+  <tr>
+    <td><img src="./.github/assets/screen-shot-1.png" width="240" /></td>
+    <td><img src="./.github/assets/screen-shot-2.png" width="240" /></td>
+  </tr>
+  <tr>
+    <td><img src="./.github/assets/screen-shot-3.png" width="240" /></td>
+    <td><img src="./.github/assets/screen-shot-4.png" width="240" /></td>
+  </tr>
+</table>
 
 ## 功能特性
 
@@ -27,12 +42,12 @@ https://liquid-glass-studio.vercel.app/
 - **背景支持**：支持多种背景类型，包括图片和视频
 - **动画支持**：基于 Spring 动画机制，可配置参数
 
-## 技术亮点
+## 技术
 
 - 基于 WebGL 的高性能图形渲染
-- 多 Pass 渲染机制，实现高质量高斯模糊
+- 使用多 Pass 渲染，实现高质量高性能的高斯模糊
+- 使用 SDF 定义的形状和平滑合并函数
 - 自定义 Shader 实现真实玻璃质感
-- 模块化组件架构，方便维护与扩展
 - 使用自定义 Leva UI 控件，实现参数可视化控制
 
 ## 快速开始
