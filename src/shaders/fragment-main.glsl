@@ -99,12 +99,26 @@ void main() {
     u_shapeRoundness
   );
 
-  float merged = smin(d1, d2, 0.05);
+  float merged = smin(d1, d2, 0.1);
+
+  float normalizedInside = merged / u_shapeHeight / u_resolution.y + 1.0;
+  float edgeBlendFactor = pow(normalizedInside, 12.0);
   // float smoothed = smoothstep(0.0, 0.0005, merged);
   vec4 outColor;
   if (merged < 0.0) {
     // outColor = texture(u_blurredBg, v_uv);
-    outColor = texture(u_blurredBg, v_uv);
+    // outColor = texture(u_blurredBg, v_uv);
+
+    float px = 2.0 / u_resolution.y;
+    vec3 col = merged > 0.0 ? vec3(0.9, 0.6, 0.3) : vec3(0.65, 0.85, 1.0);
+    // 阴影
+    col *= 1.0 - exp(-0.03 * abs(merged) * u_resolution.y);
+    // 等高线
+    col *= 0.6 + 0.4 * smoothstep(-0.5, 0.5, cos(0.25 * abs(merged) * u_resolution.y));
+    // 外层白框
+    col = mix(col, vec3(1.0), 1.0 - smoothstep(0.003 - px, 0.003 + px, abs(merged)));
+
+    outColor = vec4(vec3(1.0 + merged * 8.0), 1.0);
   } else {
     outColor = texture(u_bg, v_uv);
   }
