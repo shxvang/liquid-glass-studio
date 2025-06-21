@@ -205,8 +205,16 @@ export const ResizableWindow = ({
               return;
             }
 
-            el.style.transform = `translate(${offset.x}px, ${offset.y}px)`;
-            stateRef.current.canvasMoveOffset = offset;
+            let defaultPrevented = false;
+            stateRef.current.onMove?.(offset, {
+              preventDefault() {
+                defaultPrevented = true;
+              }
+            });
+            if (!defaultPrevented) {
+              el.style.transform = `translate(${offset.x}px, ${offset.y}px)`;
+              stateRef.current.canvasMoveOffset = offset;
+            }
           },
         };
         if (typeof ctrlRef === 'function') {

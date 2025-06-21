@@ -32,11 +32,21 @@ function App() {
       program: WebGLProgram;
       vao: WebGLVertexArrayObject;
     } | null;
+    canvasPos: { x: number; y: number };
+    canvasPointerPos: { x: number; y: number };
   }>({
     canvasWindowCtrlRef: null,
     renderRaf: null,
     glStates: null,
     canvasInfo,
+    canvasPos: {
+      x: 0,
+      y: 0,
+    },
+    canvasPointerPos: {
+      x: 0,
+      y: 0,
+    },
   });
   stateRef.current.canvasInfo = canvasInfo;
 
@@ -62,6 +72,7 @@ function App() {
     };
     window.addEventListener('resize', onResize);
     onResize();
+
     return () => {
       window.removeEventListener('resize', onResize);
     };
@@ -80,7 +91,22 @@ function App() {
       return;
     }
 
-    const gl = canvasRef.current.getContext('webgl2');
+    const canvasEl = canvasRef.current;
+    const onPointerMove = (e: PointerEvent) => {
+      // stateRef.current.canvasPointerPos.x = e.clientX;
+      const canvasInfo = stateRef.current.canvasInfo;
+      if (!canvasInfo) {
+        return;
+      }
+      stateRef.current.canvasPointerPos = {
+        x: (e.clientX - stateRef.current.canvasPos.x) * canvasInfo.dpr,
+        y: (stateRef.current.canvasInfo.height - (e.clientY - stateRef.current.canvasPos.y)) * canvasInfo.dpr,
+      };
+      // console.log(stateRef.current.canvasPos.x, stateRef.current.canvasPos.y);
+    };
+    canvasEl.addEventListener('pointermove', onPointerMove);
+
+    const gl = canvasEl.getContext('webgl2');
     if (!gl) {
       return;
     }
@@ -105,10 +131,7 @@ function App() {
     // 绑定到全局的 gl.ARRAY_BUFFER 绑定点上，供后续操作
     gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
     // 往Buffer上存放数据
-    const positionData = new Float32Array([
-      -1, -1, -1, 1, 1, -1,
-      1, 1
-    ]);
+    const positionData = new Float32Array([-1, -1, -1, 1, 1, -1, 1, 1]);
     gl.bufferData(gl.ARRAY_BUFFER, positionData, gl.STATIC_DRAW);
 
     // 创建buffer
@@ -116,7 +139,9 @@ function App() {
     // 绑定到全局的 gl.ARRAY_BUFFER 绑定点上，供后续操作
     gl.bindBuffer(gl.ARRAY_BUFFER, vcolorBuffer);
     // 往Buffer上存放数据
-    const vcolorData = new Uint8Array([255, 0, 0, 255, 0, 255, 0, 255, 0, 0, 255, 255, 255, 255, 255, 255]);
+    const vcolorData = new Uint8Array([
+      255, 0, 0, 255, 0, 255, 0, 255, 0, 0, 255, 255, 255, 255, 255, 255,
+    ]);
     gl.bufferData(gl.ARRAY_BUFFER, vcolorData, gl.STATIC_DRAW);
 
     //创建VAO
@@ -187,7 +212,12 @@ function App() {
       const { gl, program, vao } = stateRef.current.glStates;
       const { canvasInfo } = stateRef.current;
 
-      gl.viewport(0, 0, Math.round(canvasInfo.width * canvasInfo.dpr), Math.round(canvasInfo.height * canvasInfo.dpr));
+      gl.viewport(
+        0,
+        0,
+        Math.round(canvasInfo.width * canvasInfo.dpr),
+        Math.round(canvasInfo.height * canvasInfo.dpr),
+      );
 
       gl.clearColor(0, 0, 0, 0);
       gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
@@ -195,9 +225,13 @@ function App() {
       gl.useProgram(program);
 
       gl.bindVertexArray(vao);
-      gl.uniform2f(uResolutionLocation, Math.round(canvasInfo.width * canvasInfo.dpr), Math.round(canvasInfo.height * canvasInfo.dpr));
+      gl.uniform2f(
+        uResolutionLocation,
+        Math.round(canvasInfo.width * canvasInfo.dpr),
+        Math.round(canvasInfo.height * canvasInfo.dpr),
+      );
       // console.log(canvasInfo)
-      // gl.uniform2f(mouseUniformLocation, 10, 100);
+      gl.uniform2f(uMouseLocation, stateRef.current.canvasPointerPos.x, stateRef.current.canvasPointerPos.y);
       // gl.uniform1f(timeUniformLocation, t / 1000);
 
       gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
@@ -205,6 +239,7 @@ function App() {
     raf = requestAnimationFrame(render);
 
     return () => {
+      canvasEl.removeEventListener('pointermove', onPointerMove);
       if (raf) {
         cancelAnimationFrame(raf);
       }
@@ -222,6 +257,9 @@ function App() {
             dpr: window.devicePixelRatio,
           });
           centerizeCanvasWindow();
+        }}
+        onMove={(pos) => {
+          stateRef.current.canvasPos = pos;
         }}
         ctrlRef={(ref) => {
           stateRef.current.canvasWindowCtrlRef = ref;
