@@ -115,7 +115,10 @@ vec2 getNormal(vec2 p1, vec2 p2, vec2 p) {
     ) /
     (2.0 * h);
 
-  return normalize(grad);
+  return grad * 1.414213562 * 1000.0;
+
+  // return normalize(grad);
+
 }
 
 void main() {
@@ -156,12 +159,13 @@ void main() {
       vec2 normal = getNormal(p1, p2, gl_FragCoord.xy);
       float normalSize = length(normal);
       vec3 color = vec3((normal * 0.5 + 0.5) * edgeEffect, 0.0);
-      outColor = vec4(color, 1.0);
+      // outColor = vec4(color, 1.0);
 
       // outColor.r = texture(u_blurredBg, v_uv + normal * pow(edgeEffect * 0.5, 2.0) * 0.6).r;
       // outColor.g = texture(u_blurredBg, v_uv + normal * pow(edgeEffect * 0.5, 2.0) * 0.4).g;
       // outColor.b = texture(u_blurredBg, v_uv + normal * pow(edgeEffect * 0.5, 2.0) * 0.8).b;
       outColor = texture(u_blurredBg, v_uv - normal / gl_FragCoord.y * pow(edgeEffect, 5.0) * 30.0);
+
     } else {
       outColor = texture(u_blurredBg, v_uv);
     }
