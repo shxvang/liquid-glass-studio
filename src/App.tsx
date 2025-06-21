@@ -26,8 +26,8 @@ import { computeGaussianKernelByRadius } from './utils';
 function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [canvasInfo, setCanvasInfo] = useState<{ width: number; height: number; dpr: number }>({
-    width: 600,
-    height: 600,
+    width: 1000,
+    height: 1000,
     dpr: 1,
   });
   const [controls, controlsAPI] = useControls(() => ({
@@ -36,7 +36,7 @@ function App() {
       min: 1,
       max: 200,
       step: 1,
-      value: 5,
+      value: 1,
     },
     mergeRate: {
       label: '融合度',
@@ -47,7 +47,42 @@ function App() {
     },
     tint: {
       label: '色调',
-      value: { r: 200, b: 125, g: 106, a: 1 },
+      value: { r: 255, b: 255, g: 255, a: 0 },
+    },
+    refThickness: {
+      label: '折射厚度',
+      min: 1,
+      max: 80,
+      step: 0.01,
+      value: 20,
+    },
+    refFactor: {
+      label: '折射系数',
+      min: 1,
+      max: 2,
+      step: 0.01,
+      value: 1.4
+    },
+    refDispersion: {
+      label: '色散增益',
+      min: 0,
+      max: 20,
+      step: 0.01,
+      value: 7
+    },
+    refFresnelRange: {
+      label: '菲涅尔反射范围',
+      min: 0,
+      max: 50,
+      step: 0.01,
+      value: 25,
+    },
+    refFresnelFactor: {
+      label: '菲涅尔反射强度',
+      min: 0,
+      max: 100,
+      step: 0.01,
+      value: 100,
     },
     形状设置: folder({
       shapeWidth: {
@@ -271,27 +306,34 @@ function App() {
         u_blurRadius: stateRef.current.controls.blurRadius,
       });
 
+      const controls = stateRef.current.controls;
+
       renderer.render({
         mainPass: {
           u_mouse: [stateRef.current.canvasPointerPos.x, stateRef.current.canvasPointerPos.y],
-          u_shapeWidth: stateRef.current.controls.shapeWidth,
-          u_shapeHeight: stateRef.current.controls.shapeHeight,
+          u_shapeWidth: controls.shapeWidth,
+          u_shapeHeight: controls.shapeHeight,
           u_shapeRadius:
             ((Math.min(
-              stateRef.current.controls.shapeWidth,
-              stateRef.current.controls.shapeHeight,
+              controls.shapeWidth,
+              controls.shapeHeight,
             ) /
               2) *
-              stateRef.current.controls.shapeRadius) /
+              controls.shapeRadius) /
             100,
-          u_shapeRoundness: stateRef.current.controls.shapeRoundness,
-          u_mergeRate: stateRef.current.controls.mergeRate,
+          u_shapeRoundness: controls.shapeRoundness,
+          u_mergeRate: controls.mergeRate,
           u_tint: [
-            stateRef.current.controls.tint.r / 255,
-            stateRef.current.controls.tint.g / 255,
-            stateRef.current.controls.tint.b / 255,
-            stateRef.current.controls.tint.a,
+            controls.tint.r / 255,
+            controls.tint.g / 255,
+            controls.tint.b / 255,
+            controls.tint.a,
           ],
+          u_refThickness: controls.refThickness,
+          u_refFactor: controls.refFactor,
+          u_refDispersion: controls.refDispersion,
+          u_refFresnelRange: controls.refFresnelRange,
+          u_refFresnelFactor: controls.refFresnelFactor / 100,
         },
       });
     };
