@@ -39,6 +39,37 @@ float sdQuadraticCircle( in vec2 p )
     return length(w) * sign( a*a*0.5+b-1.5 );
 }
 
+vec3 sdSuperellipse(vec2 p, float r, float n) {
+    p = p / r;
+    vec2 gs = sign(p);
+    vec2 ps = abs(p);
+    float gm = pow(ps.x, n) + pow(ps.y, n);
+    float gd = pow(gm, 1.0 / n) - 1.0;
+    vec2  g = gs * pow(ps, vec2(n - 1.0)) * pow(gm, 1.0 / n - 1.0);
+    p = abs(p); if (p.y > p.x) p = p.yx;
+    n = 2.0 / n;
+    float s = 1.0;
+    float d = 1e20;
+    const int num = 12;
+    vec2 oq = vec2(1.0, 0.0);
+    for (int i = 1; i < num; i++) {
+        float h = float(i)/float(num-1);
+        vec2 q = vec2(pow(cos(h * 3.1415927 / 4.0), n),
+                      pow(sin(h * 3.1415927 / 4.0), n));
+        vec2  pa = p - oq;
+        vec2  ba = q - oq;
+        vec2  z = pa - ba * clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0);
+        float d2 = dot(z, z);
+        if (d2 < d) {
+            d = d2;
+            s = pa.x * ba.y - pa.y * ba.x;
+        }
+        oq = q;
+    }
+    return vec3(sqrt(d) * sign(s) * r, g);
+}
+
+
 float sdBox( in vec2 p, in vec2 b )
 {
     vec2 d = abs(p)-b;
@@ -94,20 +125,29 @@ float smin( float a, float b, float k )
 void main() {
   vec2 center1 = (gl_FragCoord.xy - u_resolution.xy * 0.5) / u_resolution.y;
   //
-  float d1 = sdBox(center1, vec2(200.0, 30.0) / u_resolution.y);
+  // float d1 = sdBox(center1, vec2(200.0, 30.0) / u_resolution.y);
+  float d1 = sdCircle(center1, 100.0 / u_resolution.y);
   // float a1 = smoothstep(0.0, 0.003, d1);
 
   vec2 center2 = (gl_FragCoord.xy - u_mouse) / u_resolution.y;
-  float d2 = sdCircle(center2, 100.0 / u_resolution.y);
+  // float d2 = sdCircle(center2, 100.0 / u_resolution.y);
+  float d2 = sdQuadraticCircle(center2 / 0.2) * 0.2;
 
   // vec3 merged = sdgMin(vec3(d1), vec3(d2));
 
   //
 
   float merged = smin(d1, d2, 0.05);
-  float smoothed = smoothstep(0.0, 0.003, merged);
 
+  float px = 2.0/u_resolution.y;
+  vec3 col = (merged>0.0) ? vec3(0.9,0.6,0.3) : vec3(0.65,0.85,1.0);
+  col *= 1.0 - exp(-9.0*abs(merged));
+  col *= 0.6 + 0.4*smoothstep(-0.5,0.5,cos(400.0*abs(merged)));
+  col = mix( col, vec3(1.0), 1.0-smoothstep(0.003-px,0.003+px,abs(merged)) );
 
-  fragColor = vec4(vec3(smoothed), 1.0);
+  fragColor = vec4(col,1.0);
+
+  // float smoothed = smoothstep(0.0, 0.003, merged);
+  // fragColor = vec4(vec3(smoothed), 1.0);
 
 }
