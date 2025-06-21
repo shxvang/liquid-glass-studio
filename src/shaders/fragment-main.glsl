@@ -2,10 +2,10 @@
 
 precision highp float;
 
-#define STEP (8.0)
-const float N_R = 1.02;
-const float N_G = 1.04;
-const float N_B = 1.06;
+#define STEP (9.0)
+const float N_R = 1.0 - 0.02;
+const float N_G = 1.0;
+const float N_B = 1.0 + 0.02;
 
 in vec2 v_uv;
 uniform sampler2D u_blurredBg;
@@ -28,6 +28,7 @@ uniform float u_refFresnelRange;
 uniform float u_refFresnelFactor;
 uniform float u_glareAngle;
 uniform float u_blurMargin;
+uniform int u_showShape1;
 
 out vec4 fragColor;
 
@@ -104,7 +105,8 @@ float smin(float a, float b, float k) {
 float mainSDF(vec2 p1, vec2 p2, vec2 p) {
   vec2 p1n = p1 + p / u_resolution.y;
   vec2 p2n = p2 + p / u_resolution.y;
-  float d1 = sdCircle(p1n, 100.0 * u_dpr / u_resolution.y);
+
+  float d1 = u_showShape1 == 1 ? sdCircle(p1n, 100.0 * u_dpr / u_resolution.y) : 1.0;
   // float d2 = sdSuperellipse(p2, 200.0 / u_resolution.y, 4.0).x;
   float d2 = roundedRectSDF(
     p2n,
@@ -180,9 +182,9 @@ vec3 vec2ToRgb(vec2 v) {
 
 vec4 getTextureDispersion(sampler2D tex, vec2 offset, float factor) {
   vec4 pixel = vec4(1.0);
-  pixel.r = texture(tex, v_uv + offset * (1.0 + (N_R - 1.0) * factor)).r;
-  pixel.g = texture(tex, v_uv + offset * (1.0 + (N_G - 1.0) * factor)).g;
-  pixel.b = texture(tex, v_uv + offset * (1.0 + (N_B - 1.0) * factor)).b;
+  pixel.r = texture(tex, v_uv + offset * (1.0 - (N_R - 1.0) * factor)).r;
+  pixel.g = texture(tex, v_uv + offset * (1.0 - (N_G - 1.0) * factor)).g;
+  pixel.b = texture(tex, v_uv + offset * (1.0 - (N_B - 1.0) * factor)).b;
 
   return pixel;
 }
@@ -200,6 +202,15 @@ void main() {
   // step 0: sdfs
   if (STEP <= 0.0) {
     float px = 2.0 / u_resolution.y;
+    vec3 col = merged > 0.0 ? vec3(1.0, 1.0, 1.0) * merged : vec3(1.0, 1.0, 1.0) * -merged * 2.0;
+    col = mix(
+      col,
+      vec3(1.0),
+      1.0 - smoothstep(0.5 / u_resolution1x.y - px, 0.5 / u_resolution1x.y + px, abs(merged))
+    );
+    outColor = vec4(col, 1.0);
+  } else if (STEP <= 1.0) {
+    float px = 2.0 / u_resolution.y;
     vec3 col = merged > 0.0 ? vec3(0.9, 0.6, 0.3) : vec3(0.65, 0.85, 1.0);
     // 阴影
     col *= 1.0 - exp(-0.03 * abs(merged) * u_resolution1x.y);
@@ -213,7 +224,7 @@ void main() {
     );
     outColor = vec4(col, 1.0);
     // step 1: normals
-  } else if (STEP <= 1.0) {
+  } else if (STEP <= 2.0) {
     if (merged < 0.0) {
       vec2 normal = getNormal(p1, p2, gl_FragCoord.xy);
       vec3 normalColor = vec2ToRgb(normal);
@@ -223,7 +234,7 @@ void main() {
       outColor = vec4(vec3(0.8), 0.0);
     }
     // step2: edge factors
-  } else if (STEP <= 2.0) {
+  } else if (STEP <= 3.0) {
     if (merged < 0.0) {
       float nmerged = -10.0 * (merged * u_resolution1x.y) / 2000.0;
       float thickness = u_refThickness / 100.0;
@@ -237,7 +248,7 @@ void main() {
       outColor = vec4(0.0);
     }
     // step3: edge factor with normal
-  } else if (STEP <= 3.0) {
+  } else if (STEP <= 4.0) {
     if (merged < 0.0) {
       vec2 normal = getNormal(p1, p2, gl_FragCoord.xy);
       vec3 normalColor = vec2ToRgb(normal);
@@ -253,13 +264,13 @@ void main() {
       outColor = vec4(0.0);
     }
     // add refaction
-  } else if (STEP <= 4.0) {
+  } else if (STEP <= 5.0) {
     if (merged < 0.0) {
       outColor = texture(u_blurredBg, v_uv);
     } else {
       outColor = texture(u_bg, v_uv);
     }
-  } else if (STEP <= 5.0) {
+  } else if (STEP <= 6.0) {
     if (merged < 0.0) {
       vec2 normal = getNormal(p1, p2, gl_FragCoord.xy);
       float nmerged = -10.0 * (merged * u_resolution1x.y) / 2000.0;
@@ -286,7 +297,7 @@ void main() {
       outColor = texture(u_bg, v_uv);
     }
     //
-  } else if (STEP <= 6.0) {
+  } else if (STEP <= 7.0) {
     if (merged < 0.0) {
       vec2 normal = getNormal(p1, p2, gl_FragCoord.xy);
       float nmerged = -10.0 * (merged * u_resolution1x.y) / 2000.0;
@@ -315,7 +326,7 @@ void main() {
     } else {
       outColor = texture(u_bg, v_uv);
     }
-  } else if (STEP <= 7.0) {
+  } else if (STEP <= 8.0) {
     if (merged < 0.0) {
       vec2 normal = getNormal(p1, p2, gl_FragCoord.xy);
       float nmerged = -10.0 * (merged * u_resolution1x.y) / 2000.0;
@@ -373,7 +384,7 @@ void main() {
     } else {
       outColor = texture(u_bg, v_uv);
     }
-  } else if (STEP <= 8.0) {
+  } else if (STEP <= 9.0) {
     if (merged < 0.005) {
       vec2 normal = getNormal(p1, p2, gl_FragCoord.xy);
       float glareFactor =

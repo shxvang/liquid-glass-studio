@@ -1,20 +1,30 @@
 @import '../node_modules/modern-normalize/modern-normalize.css';
 
 body {
+  --bg-color: #2a2a33;
+  --bg-color-fore: #474757;
+
   background-color: #ffffff;
   background:
     radial-gradient(
       circle,
       transparent 20%,
-      #ffffff 20%,
-      #ffffff 80%,
+      var(--bg-color) 20%,
+      var(--bg-color) 80%,
       transparent 80%,
       transparent
     ),
-    radial-gradient(circle, transparent 20%, #ffffff 20%, #ffffff 80%, transparent 80%, transparent)
+    radial-gradient(
+        circle,
+        transparent 20%,
+        var(--bg-color) 20%,
+        var(--bg-color) 80%,
+        transparent 80%,
+        transparent
+      )
       25px 25px,
-    linear-gradient(#d7d7d7 2px, transparent 2px) 0 -1px,
-    linear-gradient(90deg, #d7d7d7 2px, #ffffff 2px) -1px 0;
+    linear-gradient(var(--bg-color-fore) 2px, transparent 2px) 0 -1px,
+    linear-gradient(90deg, var(--bg-color-fore) 2px, var(--bg-color) 2px) -1px 0;
   background-size:
     50px 50px,
     50px 50px,

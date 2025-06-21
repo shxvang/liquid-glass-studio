@@ -30,8 +30,9 @@ import { LevaContainer } from './components/LevaContainer/LevaContainer';
 import bgBarH from '@/assets/bg-bar-h.png';
 import bgHalf from '@/assets/bg-half.png';
 import bgGrid from '@/assets/bg-grid.png';
+import bgTimcook from '@/assets/bg-timcook.png';
 import bgTahoeLightImg from '@/assets/bg-tahoe-light.webp';
-import bgTahoeDarkImg from '@/assets/bg-tahoe-dark.webp';
+import bgTahoeDarkImg from '@/assets/bg-buildings.png';
 
 function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -134,6 +135,7 @@ function App() {
               { v: 2, img: bgGrid, loadTexture: false },
               { v: 3, img: bgTahoeLightImg, loadTexture: true },
               { v: 4, img: bgTahoeDarkImg, loadTexture: true },
+              { v: 5, img: bgTimcook, loadTexture: true },
             ].map(({ v, img, loadTexture }) => {
               return (
                 <div
@@ -154,46 +156,6 @@ function App() {
                 </div>
               );
             })}
-            {/* <div
-            style={{ color: value === 0 ? 'red' : '' }}
-            onClick={() => {
-              setValue(0);
-            }}
-          >
-            0
-          </div>
-          <div
-            style={{ color: value === 1 ? 'red' : '' }}
-            onClick={() => {
-              setValue(1);
-            }}
-          >
-            1
-          </div>
-          <div
-            style={{ color: value === 2 ? 'red' : '' }}
-            onClick={() => {
-              setValue(2);
-            }}
-          >
-            2
-          </div>
-          <div
-            style={{ color: value === 2 ? 'red' : '', backgroundImage: `url(${tahoeLightImg})` }}
-            onClick={() => {
-              setValue(2);
-            }}
-          >
-            3
-          </div>
-          <div
-            style={{ color: value === 2 ? 'red' : '', backgroundImage: `url(${tahoeLightImg})` }}
-            onClick={() => {
-              setValue(2);
-            }}
-          >
-            3
-          </div> */}
           </div>
         ),
       }),
@@ -239,6 +201,10 @@ function App() {
           max: 0.3,
           step: 0.01,
           value: 0.05,
+        },
+        showShape1: {
+          label: '显示第二个图形',
+          value: true
         },
       }),
       动画设置: folder({
@@ -547,6 +513,7 @@ function App() {
         u_shapeRoundness: controls.shapeRoundness,
         u_mergeRate: controls.mergeRate,
         u_glareAngle: (controls.glareAngle * Math.PI) / 180,
+        u_showShape1: controls.showShape1 ? 1 : 0
       });
 
       renderer.render({
@@ -768,7 +735,7 @@ function App() {
       <Leva
         theme={{
           sizes: {
-            rootWidth: '320px',
+            rootWidth: '350px',
             numberInputMinWidth: '42px',
             controlWidth: '200px',
           },

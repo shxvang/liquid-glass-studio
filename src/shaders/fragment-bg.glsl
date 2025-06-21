@@ -21,6 +21,7 @@ uniform vec2 u_shadowPosition;
 uniform int u_bgType;
 uniform sampler2D u_bgTexture;
 uniform float u_bgTextureRatio;
+uniform int u_showShape1;
 
 float chessboard(vec2 uv, float size, int mode) {
   float yBars = step(size * 2.0, mod(uv.y * 2.0, size * 4.0));
@@ -92,7 +93,7 @@ float sdgMin(float a, float b) {
 float mainSDF(vec2 p1, vec2 p2, vec2 p) {
   vec2 p1n = p1 + p / u_resolution.y;
   vec2 p2n = p2 + p / u_resolution.y;
-  float d1 = sdCircle(p1n, 100.0 * u_dpr / u_resolution.y);
+  float d1 = u_showShape1 == 1 ? sdCircle(p1n, 100.0 * u_dpr / u_resolution.y) : 1.0;
   // float d2 = sdSuperellipse(p2, 200.0 / u_resolution.y, 4.0).x;
   float d2 = roundedRectSDF(
     p2n,
