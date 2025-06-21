@@ -1,65 +1,68 @@
-# React + TypeScript + Vite
+# 🔮 Liquid Glass Studio
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+[English](README.md) | [简体中文](README-zh.md)
 
-Currently, two official plugins are available:
+The ultimate Apple Liquid Glass UI replica for the Web, powered by WebGL2 and shaders. Includes most Liquid Glass features with fine-grained controls for detailed customization.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Online Demo
 
-## Expanding the ESLint configuration
+## ScreenShots
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## Features
 
-```js
-export default tseslint.config({
-  extends: [
-    // Remove ...tseslint.configs.recommended and replace with this
-    ...tseslint.configs.recommendedTypeChecked,
-    // Alternatively, use this for stricter rules
-    ...tseslint.configs.strictTypeChecked,
-    // Optionally, add this for stylistic rules
-    ...tseslint.configs.stylisticTypeChecked,
-  ],
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-});
-```
+- **Full features of Apple Liquid Glass Effects**:
+  - Refraction
+  - Dispersion
+  - Fresnel reflection
+  - SuperEllipse shape
+  - Blob Effect (Shape Merge)
+  - Glare
+  - Gussian Blur Mask
+  - Shadow
+  - Self-illumination
+  - Anti-aliasing
+- **Interactive Controls**: Real-time parameter adjustments with intuitive UI
+- **Background Options**: Multiple background types including images and videos
+- **Animation Support**: Spring-based animations with configurable parameters
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Technical Highlights
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x';
-import reactDom from 'eslint-plugin-react-dom';
+- Built with React 19 and TypeScript for robust type safety
+- WebGL-based rendering for high-performance graphics
+- Custom shader implementations for realistic glass effects
+- Modular component architecture for maintainability
+- Custom Leva UI components for intuitive parameter controls
+- Vite-powered development environment for fast iteration
 
-export default tseslint.config({
-  plugins: {
-    // Add the react-x and react-dom plugins
-    'react-x': reactX,
-    'react-dom': reactDom,
-  },
-  rules: {
-    // other rules...
-    // Enable its recommended typescript rules
-    ...reactX.configs['recommended-typescript'].rules,
-    ...reactDom.configs.recommended.rules,
-  },
-});
+## Getting Started
+
+### Prerequisites
+
+- Node.js (latest LTS version recommended)
+- pnpm package manager
+
+### Installation
+
+```bash
+# Install dependencies
+pnpm install
+
+# Start development server
+pnpm dev
+
+# Build for production
+pnpm build
 ```
 
 ## TODO
 
-- [ ] 修正其他step的参数，按照step 8
-- [ ] 背景图支持cover模式
-- [ ] 背景图支持自定义
-- [ ] 背景图支持视频
-- [ ] 单独控制高光设置
-- [ ] 自发光渲染
-- [ ] 自发光边缘硬度
-- [ ] 自发光
+- [ ] More Glare Controls (hardness / color / size etc.)
+- [ ] Custom Background
+- [ ] Self-illumination
+- [ ] Control parameter import / export
+- [ ] Render Step view to show intermediate results
+- [ ] UI Content inside of shape
+
+## License
+
+[MIT License](LICENSE)

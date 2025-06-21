@@ -33,7 +33,7 @@ export default {
   },
   ['en-US']: {
     '_settings': {
-      rootWidth: '385px',
+      rootWidth: '380px',
       numberInputMinWidth: '42px',
       controlWidth: '195px',
     },
@@ -42,7 +42,7 @@ export default {
     'editor.refThickness': 'Thickness',
     'editor.refFactor': 'Refraction Factor',
     'editor.refDispersion': 'Dispersion Gain',
-    'editor.refFresnelRange': 'Fresnel Reflection Size',
+    'editor.refFresnelRange': 'Fresnel Size',
     'editor.refFresnelFactor': 'Fresnel Intensity',
     'editor.glareAngle': 'Glare Angle',
     'editor.blurRadius': 'Blur Radius',
@@ -59,7 +59,7 @@ export default {
     'editor.shapeRadius': 'Radius (%)',
     'editor.shapeRoundness': 'Roundness',
     'editor.mergeRate': 'Merge Rate',
-    'editor.showShape1': 'Show Shape 1',
+    'editor.showShape1': 'Show 2nd Shape',
     'editor.animationSettings': 'Animation Settings',
     'editor.springSizeFactor': 'Animation Morph',
   },

@@ -655,3 +655,54 @@ export function loadTextureFromURL(gl: WebGL2RenderingContext, url: string): Pro
     image.src = url;
   });
 }
+
+export function createEmptyTexture(gl: WebGL2RenderingContext): WebGLTexture {
+  const texture = gl.createTexture();
+  if (!texture) throw new Error("Failed to create texture");
+
+  gl.bindTexture(gl.TEXTURE_2D, texture);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  // 不设置图像数据，留空，后续每帧调用 texImage2D(video) 更新
+
+  return texture;
+}
+
+/**
+ * 每帧将视频帧上传至 GPU 纹理。
+ * @param gl WebGL2 上下文
+ * @param texture WebGLTexture，需要事先 create 并配置好参数
+ * @param video HTMLVideoElement，正在播放的视频
+ */
+export function updateVideoTexture(
+  gl: WebGL2RenderingContext,
+  texture: WebGLTexture,
+  video: HTMLVideoElement
+) {
+  if (video.readyState < video.HAVE_CURRENT_DATA) return;
+
+  let ratio = video.videoWidth / video.videoHeight;
+  if (isNaN(ratio)) {
+    ratio = 1;
+  }
+  gl.bindTexture(gl.TEXTURE_2D, texture);
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true); // 可选：取决于你 shader 中纹理坐标是否上下颠倒
+  gl.texImage2D(
+    gl.TEXTURE_2D,
+    0,
+    gl.RGBA,
+    video.videoWidth,
+    video.videoHeight,
+    0,
+    gl.RGBA,
+    gl.UNSIGNED_BYTE,
+    video
+  );
+  gl.generateMipmap(gl.TEXTURE_2D);
+
+  return {
+    ratio: ratio,
+  }
+}

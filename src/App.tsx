@@ -8,7 +8,7 @@ import {
   type CSSProperties,
 } from 'react';
 import styles from './App.module.scss';
-import { loadTextureFromURL, MultiPassRenderer } from './utils/GLUtils';
+import { createEmptyTexture, loadTextureFromURL, MultiPassRenderer, updateVideoTexture } from './utils/GLUtils';
 import { ResizableWindow } from './components/ResizableWindow';
 import type { ResizeWindowCtrlRefType } from './components/ResizableWindow/ResizableWindow';
 
@@ -22,7 +22,7 @@ import { Controller } from '@react-spring/web';
 import { useResizeObserver } from './utils/useResizeOberver';
 import clsx from 'clsx';
 import { useControls, folder, Leva } from 'leva';
-import { computeGaussianKernelByRadius } from './utils';
+import { computeGaussianKernelByRadius, isChineseLanguage } from './utils';
 import { LevaVectorNew } from './components/LevaVectorNew/LevaVectorNew';
 import { LevaImageUpload } from './components/LevaImageUpload/LevaImageUpload';
 import { LevaContainer } from './components/LevaContainer/LevaContainer';
@@ -33,6 +33,9 @@ import bgGrid from '@/assets/bg-grid.png';
 import bgTimcook from '@/assets/bg-timcook.png';
 import bgTahoeLightImg from '@/assets/bg-tahoe-light.webp';
 import bgTahoeDarkImg from '@/assets/bg-buildings.png';
+import bgVideoFish from '@/assets/bg-video-fish.mp4';
+import bgVideo2 from '@/assets/bg-video-2.mp4';
+import bgVideo3 from '@/assets/bg-video-3.mp4';
 
 import languages from './utils/languages';
 import { LevaCheckButtons } from './components/LevaCheckButtons';
@@ -46,9 +49,10 @@ function App() {
   });
 
   // detect system language
-  console.log(navigator.language);
 
-  const [langName, setLangName] = useState<keyof typeof languages>('zh-CN');
+  const [langName, setLangName] = useState<keyof typeof languages>(
+    isChineseLanguage() ? 'zh-CN' : 'en-US',
+  );
   const lang = useMemo(() => {
     return languages[langName];
   }, [langName]);
@@ -59,10 +63,15 @@ function App() {
         language: LevaCheckButtons({
           label: lang['editor.language'],
           selected: [langName],
-          options: [
-            { value: 'en-US', label: 'English' },
-            { value: 'zh-CN', label: '简体中文' },
-          ],
+          options: !isChineseLanguage()
+            ? [
+              { value: 'en-US', label: 'English' },
+              { value: 'zh-CN', label: '简体中文' },
+            ]
+            : [
+              { value: 'zh-CN', label: '简体中文' },
+              { value: 'en-US', label: 'English' },
+            ],
           onClick: (v) => {
             setLangName((v as (keyof typeof languages)[])[0]);
           },
@@ -156,30 +165,49 @@ function App() {
         content: ({ value, setValue }) => (
           <div className={styles.bgSelect}>
             {[
-              { v: 0, img: bgBarH, loadTexture: false },
-              { v: 1, img: bgHalf, loadTexture: false },
-              { v: 2, img: bgGrid, loadTexture: false },
-              { v: 3, img: bgTahoeLightImg, loadTexture: true },
-              { v: 4, img: bgTahoeDarkImg, loadTexture: true },
-              { v: 5, img: bgTimcook, loadTexture: true },
-            ].map(({ v, img, loadTexture }) => {
+              { v: 0, media: bgBarH, loadTexture: false },
+              { v: 1, media: bgHalf, loadTexture: false },
+              { v: 2, media: bgGrid, loadTexture: false },
+              { v: 3, media: bgTahoeLightImg, loadTexture: true },
+              { v: 4, media: bgTahoeDarkImg, loadTexture: true },
+              { v: 5, media: bgTimcook, loadTexture: true },
+              { v: 6, media: bgVideoFish, loadTexture: true, type: 'video' as const },
+              { v: 7, media: bgVideo2, loadTexture: true, type: 'video' as const },
+              { v: 8, media: bgVideo3, loadTexture: true, type: 'video' as const }
+            ].map(({ v, media, loadTexture, type }) => {
               return (
                 <div
                   className={clsx(styles.bgSelectItem, {
                     [styles.bgSelectItemActive]: value === v,
                   })}
-                  style={{ backgroundImage: `url(${img})` }}
+                  style={{ backgroundImage: type === 'video' ? '' : `url(${media})` }}
                   key={v}
                   onClick={() => {
                     setValue(v);
-
                     if (loadTexture) {
-                      stateRef.current.bgTextureUrl = img;
+                      stateRef.current.bgTextureUrl = media;
+                      if (type === 'video') {
+                        stateRef.current.bgTextureType = 'video'
+                      } else {
+                        stateRef.current.bgTextureType = 'image'
+                      }
                     } else {
                       stateRef.current.bgTextureUrl = null;
                     }
                   }}
-                ></div>
+                >
+                  {type === 'video' ? (
+                    <video playsInline muted={true} loop className={styles.bgSelectItemVideo} ref={(ref) => {
+                      if (ref) {
+                        stateRef.current.bgVideoEls.set(v, ref);
+                      } else {
+                        stateRef.current.bgVideoEls.delete(v);
+                      }
+                    }}>
+                      <source src={media}></source>
+                    </video>
+                  ) : null}
+                </div>
               );
             })}
           </div>
@@ -266,6 +294,8 @@ function App() {
     bgTextureUrl: string | null;
     bgTexture: WebGLTexture | null;
     bgTextureRatio: number;
+    bgTextureType: 'image' | 'video' | null;
+    bgVideoEls: Map<number, HTMLVideoElement>;
     langName: typeof langName;
   }>({
     canvasWindowCtrlRef: null,
@@ -286,7 +316,6 @@ function App() {
       x: 0,
       y: 0,
     },
-
     lastMouseSpringTime: null,
     mouseSpring: new Controller({
       x: 0,
@@ -329,6 +358,8 @@ function App() {
     bgTexture: null,
     bgTextureRatio: 1,
     langName: langName,
+    bgTextureType: null,
+    bgVideoEls: new Map(),
   });
   stateRef.current.canvasInfo = canvasInfo;
   stateRef.current.controls = controls;
@@ -448,24 +479,11 @@ function App() {
       },
     ]);
 
-    // renderer.addPass(
-    //   {
-    //     vertex: VertexShader,
-    //     fragment: FragmentBgShader,
-    //   },
-    //   true,
-    // );
-    // renderer.addPass(
-    //   {
-    //     vertex: VertexShader,
-    //     fragment: FragmentBgVblurShader,
-    //   },
-    //   false,
-    // )
-
     let raf: number | null = null;
     const lastState = {
       canvasInfo: null as typeof canvasInfo | null,
+      controls: null as typeof controls | null,
+      bgTextureType: null as typeof stateRef.current.bgTextureType,
       bgTextureUrl: null as typeof stateRef.current.bgTextureUrl,
     };
     // let startTime: number | null = null
@@ -500,24 +518,51 @@ function App() {
           canvasInfo.width * canvasInfo.dpr,
           canvasInfo.height * canvasInfo.dpr,
         ]);
-        lastState.canvasInfo = canvasInfo;
       }
       if (textureUrl !== lastState.bgTextureUrl) {
+        if (lastState.bgTextureType === 'video') {
+          if (lastState.controls?.bgType !== undefined) {
+            stateRef.current.bgVideoEls.get(lastState.controls.bgType)?.pause();
+          }
+        }
         if (!textureUrl) {
           if (stateRef.current.bgTexture) {
             gl.deleteTexture(stateRef.current.bgTexture);
             stateRef.current.bgTexture = null;
+            stateRef.current.bgTextureType = null;
           }
         } else {
-          loadTextureFromURL(gl, textureUrl).then(({ texture, ratio }) => {
-            if (stateRef.current.bgTextureUrl === textureUrl) {
-              stateRef.current.bgTexture = texture;
-              stateRef.current.bgTextureRatio = ratio;
-            }
-          });
+          if (stateRef.current.bgTextureType === 'image') {
+            loadTextureFromURL(gl, textureUrl).then(({ texture, ratio }) => {
+              if (stateRef.current.bgTextureUrl === textureUrl) {
+                stateRef.current.bgTexture = texture;
+                stateRef.current.bgTextureRatio = ratio;
+              }
+            });
+          } else if (stateRef.current.bgTextureType === 'video') {
+            stateRef.current.bgTexture = createEmptyTexture(gl);
+            stateRef.current.bgVideoEls.get(stateRef.current.controls.bgType)?.play();
+          }
         }
+      }
+      lastState.controls = stateRef.current.controls;
+      lastState.bgTextureType = stateRef.current.bgTextureType;
+      lastState.canvasInfo = canvasInfo;
+      lastState.bgTextureUrl = stateRef.current.bgTextureUrl;
 
-        lastState.bgTextureUrl = stateRef.current.bgTextureUrl;
+      if (stateRef.current.bgTextureType === 'video') {
+        const videoEl = stateRef.current.bgVideoEls.get(stateRef.current.controls.bgType);
+        if (stateRef.current.bgTexture && videoEl) {
+          const info = updateVideoTexture(
+            gl,
+            stateRef.current.bgTexture,
+            videoEl,
+          );
+
+          if (info) {
+            stateRef.current.bgTextureRatio = info.ratio;
+          }
+        }
       }
 
       gl.clearColor(0, 0, 0, 0);
@@ -594,156 +639,6 @@ function App() {
         cancelAnimationFrame(raf);
       }
     };
-
-    // // 创建shaderss
-    // const vertexShader = createShader(gl, gl.VERTEX_SHADER, VertexShader);
-    // const fragmentBgShader = createShader(gl, gl.FRAGMENT_SHADER, FragmentBgShader);
-    // const fragmentBgVblurShader = createShader(gl, gl.FRAGMENT_SHADER, FragmentBgVblurShader);
-    // const fragmentMainShader = createShader(gl, gl.FRAGMENT_SHADER, FragmentMainShader);
-    // if (!vertexShader || !fragmentBgShader || !fragmentBgVblurShader || !fragmentMainShader) {
-    //   return;
-    // }
-
-    // // 创建programs
-    // const programBg = createProgram(gl, vertexShader, fragmentBgShader);
-    // const programBgVblur = createProgram(gl, vertexShader, fragmentBgVblurShader);
-    // const programMain = createProgram(gl, vertexShader, fragmentMainShader);
-    // if (!programBg || !programMain || !programBgVblur) {
-    //   return;
-    // }
-
-    // // 输入用户绘制的数据
-    // // 创建buffer
-    // const positionBuffer = gl.createBuffer();
-    // // 绑定到全局的 gl.ARRAY_BUFFER 绑定点上，供后续操作
-    // gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
-    // // 往Buffer上存放数据
-    // const positionData = new Float32Array([-1, -1, -1, 1, 1, -1, 1, 1]);
-    // gl.bufferData(gl.ARRAY_BUFFER, positionData, gl.STATIC_DRAW);
-
-    // // 创建buffer
-    // const vcolorBuffer = gl.createBuffer();
-    // // 绑定到全局的 gl.ARRAY_BUFFER 绑定点上，供后续操作
-    // gl.bindBuffer(gl.ARRAY_BUFFER, vcolorBuffer);
-    // // 往Buffer上存放数据
-    // const vcolorData = new Uint8Array([
-    //   255, 0, 0, 255, 0, 255, 0, 255, 0, 0, 255, 255, 255, 255, 255, 255,
-    // ]);
-    // gl.bufferData(gl.ARRAY_BUFFER, vcolorData, gl.STATIC_DRAW);
-
-    // //创建VAO
-    // // VAO，属性状态的集合，可以保存一堆 attributes （定义了buffer如何被访问）
-    // const vao = gl.createVertexArray();
-    // // 绑定到全局的 VERTEX_ARRAY_BINDING 绑定点上，供后续操作
-    // gl.bindVertexArray(vao);
-
-    // // 设置attribute对应的数据和数据读取方式
-    // // 获取属性（attribute）的索引号。使用索引号来引用到GPU维护的属性列表中
-    // const positionAttributeLocation = gl.getAttribLocation(program, 'a_position');
-    // // 获取uniform的索引号
-    // const uResolutionLocation = gl.getUniformLocation(program, 'u_resolution');
-    // const uMouseLocation = gl.getUniformLocation(program, 'u_mouse');
-    // const uTimeLocation = gl.getUniformLocation(program, 'u_time');
-    // const uBlurRadiusLocation = gl.getUniformLocation(program, 'u_blurRadius');
-    // const uBlurWeightsLocation = gl.getUniformLocation(program, 'u_blurWeights');
-
-    // // 激活该index下的属性以便使用
-    // gl.enableVertexAttribArray(positionAttributeLocation);
-    // // 这里前序已经操作过了，可以不做。但是如果被改变了，这里需调整回来
-    // gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
-    // // 告诉显卡，这个attribute如何 读取和使用 当前在 gl.ARRAY_BUFFER 上对应的buffer数据
-    // // 相关信息存储在VAO（的attributes）中
-    // gl.vertexAttribPointer(
-    //   positionAttributeLocation, // index: attribute索引号
-    //   2, // size: 每次vertex shader迭代，所使用的buffer元素数量，这里是2个值（x，y坐标）
-    //   gl.FLOAT, // type: 值类型
-    //   false, // normalized: 是否normalize（归一化），例如gl.BYTE类型（-128～127）将转换为[-1, 1], gl.UNSIGNED_BYTE 转换为[0, 1]
-    //   0, // stride：buffer中每次迭代跳过的数据偏移量。为0则为紧密打包的。
-    //   0, // offset: 顶点数组的第一个部分的字节偏移量。必须是字节长度的倍数
-    // );
-
-    // // 获取属性（attribute）的索引号。使用索引号来引用到GPU维护的属性列表中
-    // const vcolorAttributeLocation = gl.getAttribLocation(program, 'a_color');
-    // // 激活该index下的属性以便使用
-    // gl.enableVertexAttribArray(vcolorAttributeLocation);
-    // // 这里前序已经操作过了，可以不做。但是如果被改变了，这里需调整回来
-    // gl.bindBuffer(gl.ARRAY_BUFFER, vcolorBuffer);
-    // // 告诉显卡，这个attribute如何 读取和使用 当前在 gl.ARRAY_BUFFER 上对应的buffer数据
-    // // 相关信息存储在VAO（的attributes）中
-    // gl.vertexAttribPointer(
-    //   vcolorAttributeLocation, // index: attribute索引号
-    //   4, // size: 每次vertex shader迭代，所使用的buffer元素数量，这里是2个值（x，y坐标）
-    //   gl.UNSIGNED_BYTE, // type: 值类型
-    //   true, // normalized: 是否normalize（归一化），例如gl.BYTE类型（-128～127）将转换为[-1, 1], gl.UNSIGNED_BYTE 转换为[0, 1]
-    //   0, // stride：buffer中每次迭代跳过的数据偏移量。为0则为紧密打包的。
-    //   0, // offset: 顶点数组的第一个部分的字节偏移量。必须是字节长度的倍数
-    // );
-
-    // // 现在，各种状态值准备就绪
-    // // 可以启用program了，此时program能够通过VAO读取顶点相关的attributes和buffer
-    // // 传入link好的shader中进行处理和绘制了
-    // gl.useProgram(program);
-    // //
-    // gl.drawArrays(gl.TRIANGLE_STRIP, 0, 3);
-    // stateRef.current.glStates = {
-    //   gl,
-    //   programs: {
-    //     bg: programBg,
-    //     bgVblur: programBgVblur,
-    //     main: programMain,
-    //   },
-    //   vao,
-    // };
-
-    // let raf: number | null = null;
-    // const render = (t: number) => {
-    //   raf = requestAnimationFrame(render);
-    //   if (!stateRef.current.glStates) {
-    //     return;
-    //   }
-    //   if (!stateRef.current.blurWeights.length) {
-    //     return;
-    //   }
-
-    //   const { gl, program, vao } = stateRef.current.glStates;
-    //   const { canvasInfo } = stateRef.current;
-
-    //   gl.viewport(
-    //     0,
-    //     0,
-    //     Math.round(canvasInfo.width * canvasInfo.dpr),
-    //     Math.round(canvasInfo.height * canvasInfo.dpr),
-    //   );
-
-    //   gl.clearColor(0, 0, 0, 0);
-    //   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-
-    //   gl.useProgram(program);
-
-    //   gl.bindVertexArray(vao);
-    //   gl.uniform2f(
-    //     uResolutionLocation,
-    //     Math.round(canvasInfo.width * canvasInfo.dpr),
-    //     Math.round(canvasInfo.height * canvasInfo.dpr),
-    //   );
-    //   // console.log(canvasInfo)
-    //   gl.uniform2f(uMouseLocation, stateRef.current.canvasPointerPos.x, stateRef.current.canvasPointerPos.y);
-
-    //   gl.uniform1i(uBlurRadiusLocation, stateRef.current.controls.blurRadius);
-    //   gl.uniform1fv(uBlurWeightsLocation, stateRef.current.blurWeights);
-
-    //   // gl.uniform1f(timeUniformLocation, t / 1000);
-
-    //   gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-    // };
-    // raf = requestAnimationFrame(render);
-
-    // return () => {
-    //   canvasEl.removeEventListener('pointermove', onPointerMove);
-    //   if (raf) {
-    //     cancelAnimationFrame(raf);
-    //   }
-    // };
   }, []);
 
   return (

@@ -107,19 +107,20 @@ float mainSDF(vec2 p1, vec2 p2, vec2 p) {
   return smin(d1, d2, u_mergeRate);
 }
 
-vec2 coverUV(vec2 uv, vec2 resolution, float textureRatio) {
-  float screenRatio = resolution.x / resolution.y;
-
-  if (screenRatio < textureRatio) {
-    // canvas 更宽 → x 裁剪 → y 保持
-    float scale = screenRatio / textureRatio;
-    uv.y = (uv.y - 0.5) * scale + 0.5;
+// 输入：原始 uv、canvas 宽高比、纹理宽高比
+// 输出：变换后的 uv，可直接用于 texture 采样
+vec2 getCoverUV(vec2 uv, float canvasAspect, float textureAspect) {
+  if (canvasAspect > textureAspect) {
+    // canvas 更宽，纹理竖向拉伸
+    float delta = canvasAspect - textureAspect;
+    float scale = textureAspect / canvasAspect;
+    uv.y = uv.y * scale + delta / 2.0 * scale;
   } else {
-    // canvas 更高 → y 裁剪 → x 保持
-    float scale = textureRatio / screenRatio;
-    uv.x = (uv.x - 0.5) * scale + 0.5;
+    // canvas 更高，纹理横向拉伸
+    float scale = canvasAspect / textureAspect;
+    float delta = textureAspect - canvasAspect;
+    uv.x = uv.x * scale + delta / 2.0;
   }
-
   return uv;
 }
 
@@ -135,8 +136,8 @@ void main() {
     bgColor = vec3(halfColor(gl_FragCoord.xy / u_resolution));
   } else if (u_bgType <= 2) {
     bgColor = vec3(1.0 - chessboard(gl_FragCoord.xy / u_dpr, 20.0, 2) / 4.0);
-  } else if (u_bgType <= 5) {
-    vec2 uv = coverUV(v_uv, u_resolution, u_bgTextureRatio);
+  } else if (u_bgType <= 10) {
+    vec2 uv = getCoverUV(v_uv, u_resolution.x / u_resolution.y, u_bgTextureRatio);
 
     // 不需要判断越界，CLAMP_TO_EDGE 会自动处理
     bgColor = texture(u_bgTexture, uv).rgb;

@@ -9,3 +9,7 @@ export function computeGaussianKernelByRadius(radius: number) {
   }
   return kernel.map(w => w / sum); // 归一化
 }
+
+export function isChineseLanguage() {
+  return navigator.language.startsWith('zh');
+}
