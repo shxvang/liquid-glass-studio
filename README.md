@@ -4,6 +4,8 @@
 
 The ultimate Apple Liquid Glass UI replica for the Web, powered by WebGL2 and shaders. Includes most Liquid Glass features with fine-grained controls for detailed customization.
 
+![screenshot](./.github/assets/title-video.gif)
+
 ## Online Demo
 
 https://liquid-glass-studio.vercel.app/
