@@ -34,6 +34,9 @@ import bgTimcook from '@/assets/bg-timcook.png';
 import bgTahoeLightImg from '@/assets/bg-tahoe-light.webp';
 import bgTahoeDarkImg from '@/assets/bg-buildings.png';
 
+import languages from './utils/languages';
+import { LevaCheckButtons } from './components/LevaCheckButtons';
+
 function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [canvasInfo, setCanvasInfo] = useState<{ width: number; height: number; dpr: number }>({
@@ -41,91 +44,114 @@ function App() {
     height: Math.max(Math.min(window.innerWidth, window.innerHeight) - 100, 600),
     dpr: 1,
   });
+
+  // detect system language
+  console.log(navigator.language);
+
+  const [langName, setLangName] = useState<keyof typeof languages>('zh-CN');
+  const lang = useMemo(() => {
+    return languages[langName];
+  }, [langName]);
+
   const [controls, controlsAPI] = useControls(
     () => ({
+      ['⚙️']: folder({
+        language: LevaCheckButtons({
+          label: lang['editor.language'],
+          selected: [langName],
+          options: [
+            { value: 'en-US', label: 'English' },
+            { value: 'zh-CN', label: '简体中文' },
+          ],
+          onClick: (v) => {
+            setLangName((v as (keyof typeof languages)[])[0]);
+          },
+          singleMode: true,
+        }),
+      }),
       refThickness: {
-        label: '折射厚度',
+        label: lang['editor.refThickness'],
         min: 1,
         max: 80,
         step: 0.01,
         value: 20,
       },
       refFactor: {
-        label: '折射系数',
+        label: lang['editor.refFactor'],
         min: 1,
         max: 3,
         step: 0.01,
         value: 1.4,
       },
       refDispersion: {
-        label: '色散增益',
+        label: lang['editor.refDispersion'],
         min: 0,
         max: 50,
         step: 0.01,
         value: 7,
       },
       refFresnelRange: {
-        label: '菲涅尔反射范围',
+        label: lang['editor.refFresnelRange'],
         min: 0,
         max: 90,
         step: 0.01,
         value: 35,
       },
       refFresnelFactor: {
-        label: '菲涅尔反射强度',
+        label: lang['editor.refFresnelFactor'],
         min: 0,
         max: 100,
         step: 0.01,
         value: 100,
       },
       glareAngle: {
-        label: '高光角度',
+        label: lang['editor.glareAngle'],
         min: -180,
         max: 180,
         step: 0.01,
         value: 45,
       },
       blurRadius: {
-        label: '模糊半径',
+        label: lang['editor.blurRadius'],
         min: 1,
         max: 200,
         step: 1,
         value: 1,
       },
       blurMargin: {
-        label: '边缘模糊度',
+        label: lang['editor.blurMargin'],
         min: 0,
         max: 100,
         step: 0.01,
         value: 100,
       },
       tint: {
-        label: '色调',
+        label: lang['editor.tint'],
         value: { r: 255, b: 255, g: 255, a: 0 },
       },
       shadowExpand: {
-        label: '阴影扩散',
+        label: lang['editor.shadowExpand'],
         min: 2,
         max: 100,
         step: 0.01,
         value: 25,
       },
       shadowFactor: {
-        label: '阴影强度',
+        label: lang['editor.shadowFactor'],
         min: 0,
         max: 100,
         step: 0.01,
         value: 25,
       },
       shadowPosition: LevaVectorNew({
-        label: '阴影位置',
+        label: lang['editor.shadowPosition'],
         x: 0,
         y: -10,
         xMax: 20,
         yMax: 20,
       }),
       bgType: LevaContainer({
-        label: '背景类型',
+        label: lang['editor.bgType'],
         contentValue: 0,
         content: ({ value, setValue }) => (
           <div className={styles.bgSelect}>
@@ -140,9 +166,10 @@ function App() {
               return (
                 <div
                   className={clsx(styles.bgSelectItem, {
-                    [styles.bgSelectItemActive]: value === v
+                    [styles.bgSelectItemActive]: value === v,
                   })}
                   style={{ backgroundImage: `url(${img})` }}
+                  key={v}
                   onClick={() => {
                     setValue(v);
 
@@ -152,64 +179,63 @@ function App() {
                       stateRef.current.bgTextureUrl = null;
                     }
                   }}
-                >
-                </div>
+                ></div>
               );
             })}
           </div>
         ),
       }),
-      customBgImage: LevaImageUpload({
-        label: '自定义背景',
-        file: undefined,
-        // disabled: renderProps.isRendering,
-        // alphaPatternColorA: '#bbb',
-        // alphaPatternColorB: '#eee',
-      }),
-      形状设置: folder({
+      // customBgImage: LevaImageUpload({
+      //   label: lang['editor.customBgImage'],
+      //   file: undefined,
+      //   // disabled: renderProps.isRendering,
+      //   // alphaPatternColorA: '#bbb',
+      //   // alphaPatternColorB: '#eee',
+      // }),
+      [lang['editor.shapeSettings'] as 'shapeSettings']: folder({
         shapeWidth: {
-          label: '宽',
+          label: lang['editor.shapeWidth'],
           min: 20,
           max: 800,
           step: 1,
           value: 200,
         },
         shapeHeight: {
-          label: '高',
+          label: lang['editor.shapeHeight'],
           min: 20,
           max: 800,
           step: 1,
           value: 200,
         },
         shapeRadius: {
-          label: '圆角 (%)',
+          label: lang['editor.shapeRadius'],
           min: 1,
           max: 100,
           step: 0.1,
           value: 80,
         },
         shapeRoundness: {
-          label: '超椭圆系数',
+          label: lang['editor.shapeRoundness'],
           min: 2,
           max: 7,
           step: 0.01,
           value: 5,
         },
         mergeRate: {
-          label: '形状融合度',
+          label: lang['editor.mergeRate'],
           min: 0,
           max: 0.3,
           step: 0.01,
           value: 0.05,
         },
         showShape1: {
-          label: '显示第二个图形',
-          value: true
+          label: lang['editor.showShape1'],
+          value: true,
         },
       }),
-      动画设置: folder({
+      [lang['editor.animationSettings'] as 'animationSettings']: folder({
         springSizeFactor: {
-          label: '速度形变',
+          label: lang['editor.springSizeFactor'],
           min: 0,
           max: 50,
           step: 0.01,
@@ -217,7 +243,7 @@ function App() {
         },
       }),
     }),
-    [],
+    [langName],
   );
 
   const stateRef = useRef<{
@@ -240,6 +266,7 @@ function App() {
     bgTextureUrl: string | null;
     bgTexture: WebGLTexture | null;
     bgTextureRatio: number;
+    langName: typeof langName;
   }>({
     canvasWindowCtrlRef: null,
     renderRaf: null,
@@ -278,10 +305,17 @@ function App() {
           x: c.value.x - lastValue.x,
           y: c.value.y - lastValue.y,
         };
-        stateRef.current.mouseSpringSpeed = {
+        const speed = {
           x: dx.x / dt,
           y: dx.y / dt,
         };
+
+        if (Math.abs(speed.x) > 1e10 || Math.abs(speed.y) > 1e10) {
+          speed.x = 0;
+          speed.y = 0;
+        }
+
+        stateRef.current.mouseSpringSpeed = speed;
 
         stateRef.current.lastMouseSpringValue = c.value;
         stateRef.current.lastMouseSpringTime = now;
@@ -294,9 +328,17 @@ function App() {
     bgTextureUrl: null,
     bgTexture: null,
     bgTextureRatio: 1,
+    langName: langName,
   });
   stateRef.current.canvasInfo = canvasInfo;
   stateRef.current.controls = controls;
+  stateRef.current.langName = langName;
+
+  // useEffect(() => {
+  //   setLangName(controls.language[0] as keyof typeof languages);
+  // }, [controls.language]);
+
+  // console.log(controls.language);
 
   useMemo(() => {
     stateRef.current.blurWeights = computeGaussianKernelByRadius(controls.blurRadius);
@@ -513,14 +555,17 @@ function App() {
         u_shapeRoundness: controls.shapeRoundness,
         u_mergeRate: controls.mergeRate,
         u_glareAngle: (controls.glareAngle * Math.PI) / 180,
-        u_showShape1: controls.showShape1 ? 1 : 0
+        u_showShape1: controls.showShape1 ? 1 : 0,
       });
 
       renderer.render({
         bgPass: {
           u_bgType: controls.bgType,
           u_bgTexture: (stateRef.current.bgTextureUrl && stateRef.current.bgTexture) ?? undefined,
-          u_bgTextureRatio: (stateRef.current.bgTextureUrl && stateRef.current.bgTexture) ? stateRef.current.bgTextureRatio : undefined,
+          u_bgTextureRatio:
+            stateRef.current.bgTextureUrl && stateRef.current.bgTexture
+              ? stateRef.current.bgTextureRatio
+              : undefined,
           u_shadowExpand: controls.shadowExpand,
           u_shadowFactor: controls.shadowFactor / 100,
           u_shadowPosition: [-controls.shadowPosition.x, -controls.shadowPosition.y],
@@ -735,9 +780,9 @@ function App() {
       <Leva
         theme={{
           sizes: {
-            rootWidth: '350px',
-            numberInputMinWidth: '42px',
-            controlWidth: '200px',
+            rootWidth: lang['_settings'].rootWidth,
+            numberInputMinWidth: lang['_settings'].numberInputMinWidth,
+            controlWidth: lang['_settings'].controlWidth,
           },
           space: {
             colGap: '5px',

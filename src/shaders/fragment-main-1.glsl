@@ -235,4 +235,67 @@ void main() {
 
   fragColor = BgColor;
 
+  // float normalizedInside = merged / u_shapeHeight / u_resolution.y + 1.0;
+  // float edgeBlendFactor = pow(normalizedInside, 12.0);
+  // float smoothed = smoothstep(0.0, 0.0005, merged);
+
+  // vec4 outColor;
+  // if (merged < 0.0) {
+  // outColor = texture(u_blurredBg, v_uv);
+  // outColor = texture(u_blurredBg, v_uv);
+
+  // float px = 2.0 / u_resolution.y;
+  // vec3 col = merged > 0.0 ? vec3(0.9, 0.6, 0.3) : vec3(0.65, 0.85, 1.0);
+  // // 阴影
+  // col *= 1.0 - exp(-0.03 * abs(merged) * u_resolution.y);
+  // // 等高线
+  // col *= 0.6 + 0.4 * smoothstep(-0.5, 0.5, cos(0.25 * abs(merged) * u_resolution.y));
+  // // 外层白框
+  // col = mix(col, vec3(1.0), 1.0 - smoothstep(0.003 - px, 0.003 + px, abs(merged)));
+
+  // float edgeEffect = pow(clamp(1.0 + merged * u_refEdge * u_resolution.y, 0.0, 1.0), 2.0);
+  // float edgeEffect = 1.0;
+
+  // if (edgeEffect > 0.0) {
+  //   vec2 normal = getNormal(p1, p2, gl_FragCoord.xy);
+  // vec3 normalColor = vec3((normal * 0.5 + 0.5) * edgeEffect, 0.0);
+  // vec3 normalColor = vec3(clamp(normal.x, 0.0, 1.0), abs(normal.y), clamp(-normal.x, 0.0, 1.0));
+  // vec3 normalColor = vec3()
+  // // view edge
+  // outColor = vec4(vec3(edgeEffect), 1.0);
+  // // view normal
+  // outColor = vec4(normalColor, 1.0);
+
+  // outColor.r = texture(u_blurredBg, v_uv + normal * pow(edgeEffect * 0.5, 2.0) * 0.6).r;
+  // outColor.g = texture(u_blurredBg, v_uv + normal * pow(edgeEffect * 0.5, 2.0) * 0.4).g;
+  // outColor.b = texture(u_blurredBg, v_uv + normal * pow(edgeEffect * 0.5, 2.0) * 0.8).b;
+
+  // final color
+  // outColor = texture(u_blurredBg, v_uv - normal * pow(edgeEffect, 5.0) * 30.0 / 800.0);
+
+  // outColor.r = texture(
+  //   u_blurredBg,
+  //   v_uv - normal / gl_FragCoord.y * pow(edgeEffect, 5.0) * 30.0 * 1.0
+  // ).r;
+  // outColor.g = texture(
+  //   u_blurredBg,
+  //   v_uv - normal / gl_FragCoord.y * pow(edgeEffect, 5.0) * 30.0 * 1.0
+  // ).g;
+  // outColor.b = texture(
+  //   u_blurredBg,
+  //   v_uv - normal / gl_FragCoord.y * pow(edgeEffect, 5.0) * 30.0 * 1.0
+  // ).b;
+
+  //   } else {
+  //     outColor = texture(u_blurredBg, v_uv);
+  //   }
+
+  //   outColor = mix(outColor, vec4(u_tint.r, u_tint.g, u_tint.b, u_tint.a * 0.5), u_tint.a * 0.5);
+
+  //   // outColor = vec4(mix(texture(u_blurredBg, v_uv).rgb, vec3(1.0), edgeEffect), 1.0);
+
+  // } else {
+  //   outColor = texture(u_bg, v_uv);
+  // }
+
 }
