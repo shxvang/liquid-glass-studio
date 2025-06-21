@@ -40,7 +40,6 @@ function App() {
     height: Math.max(Math.min(window.innerWidth, window.innerHeight) - 100, 600),
     dpr: 1,
   });
-  const [bgType, setBgType] = useState(0);
   const [controls, controlsAPI] = useControls(
     () => ({
       refThickness: {
@@ -53,14 +52,14 @@ function App() {
       refFactor: {
         label: '折射系数',
         min: 1,
-        max: 2,
+        max: 3,
         step: 0.01,
         value: 1.4,
       },
       refDispersion: {
         label: '色散增益',
         min: 0,
-        max: 20,
+        max: 50,
         step: 0.01,
         value: 7,
       },

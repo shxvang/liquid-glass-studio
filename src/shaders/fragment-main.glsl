@@ -273,11 +273,11 @@ void main() {
       } else {
         vec4 blurredPixel = texture(
           u_blurredBg,
-          v_uv - normal * pow(edgeFactor * u_dpr, 2.0) / u_resolution.y * (u_refFactor - 1.0) * 30.0
+          v_uv - normal * pow(edgeFactor, 2.0) * (u_refFactor - 1.0) * 0.03 * u_dpr
         );
         vec4 unblurredPixel = texture(
           u_bg,
-          v_uv - normal * pow(edgeFactor * u_dpr, 2.0) / u_resolution.y * (u_refFactor - 1.0) * 30.0
+          v_uv - normal * pow(edgeFactor, 2.0) * (u_refFactor - 1.0) * 0.03 * u_dpr
         );
 
         outColor = mix(blurredPixel, unblurredPixel, edgeFactor);
@@ -374,7 +374,7 @@ void main() {
       outColor = texture(u_bg, v_uv);
     }
   } else if (STEP <= 8.0) {
-    if (merged < 0.0) {
+    if (merged < 0.005) {
       vec2 normal = getNormal(p1, p2, gl_FragCoord.xy);
       float glareFactor =
         0.5 +
@@ -400,13 +400,13 @@ void main() {
         vec4 blrredPixel = vec4(1.0);
         blrredPixel = getTextureDispersion(
           u_blurredBg,
-          -normal * pow(edgeFactor * u_dpr, 2.0) / u_resolution.y * (u_refFactor - 1.0) * 30.0,
+          -normal * pow(edgeFactor, 2.0) * (u_refFactor - 1.0) * 0.03 * u_dpr,
           u_refDispersion
         );
 
         vec4 unblurredPixel = getTextureDispersion(
           u_bg,
-          -normal * pow(edgeFactor * u_dpr, 2.0) / u_resolution.y * (u_refFactor - 1.0) * 30.0,
+          -normal * pow(edgeFactor, 2.0) * (u_refFactor - 1.0) * 0.03 * u_dpr,
           u_refDispersion
         );
 
@@ -423,10 +423,7 @@ void main() {
 
         vec4 fresnelColor = outColor;
         if (fresnelFactor > 0.0) {
-          fresnelColor = texture(
-            u_bg,
-            v_uv + normal * pow(fresnelFactor, 2.0) / u_resolution.y * 120.0
-          );
+          fresnelColor = texture(u_bg, v_uv + normal * pow(fresnelFactor, 2.0) * 1.0 * u_dpr);
           fresnelColor = mix(fresnelColor, vec4(1.0), fresnelFactor);
         }
 
@@ -437,6 +434,10 @@ void main() {
     } else {
       outColor = texture(u_bg, v_uv);
     }
+
+    // smooth
+    outColor = mix(outColor, texture(u_bg, v_uv), smoothstep(-0.001, 0.001, merged));
+
   }
 
   // float normalizedInside = merged / u_shapeHeight / u_resolution.y + 1.0;
