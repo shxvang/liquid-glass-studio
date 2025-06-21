@@ -1,10 +1,10 @@
-import { CSSProperties, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+/* eslint-disable @typescript-eslint/no-unused-vars */
+// import { CSSProperties, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import './LevaCheckButtons.scss';
 import { createPlugin, useInputContext, type LevaInputProps, Components } from 'leva/plugin';
-import clsx from 'clsx';
-import { type StoreType } from 'leva/dist/declarations/src/types';
+// import clsx from 'clsx';
 import { LevaButton } from '../LevaButton';
-const { Row, Label, Number: NumberComp, Portal } = Components;
+const { Row, Label } = Components;
 
 type CheckButtonsSettings = {
   options: { value: string; label?: string; disabled?: boolean; }[];
@@ -93,7 +93,6 @@ const sanitize = (
   settings: CheckButtonsSettings,
   lastValue: CheckButtonsValueType,
   path: string,
-  store: StoreType,
 ): CheckButtonsValueType => {
   return value;
 };

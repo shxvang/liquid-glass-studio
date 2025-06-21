@@ -574,7 +574,7 @@ export class MultiPassRenderer {
   }
 
   public render(passUniforms?: Record<string, any>[] | Record<string, Record<string, any>>): void {
-    const gl = this.gl;
+    // const gl = this.gl;
 
     this.passesArray.forEach((pass, index) => {
       // 合并全局uniforms和通道特定uniforms

@@ -27,12 +27,11 @@ The ultimate Apple Liquid Glass UI replica for the Web, powered by WebGL2 and sh
 
 ## Technical Highlights
 
-- Built with React 19 and TypeScript for robust type safety
 - WebGL-based rendering for high-performance graphics
+- Multipass rendering for high-quality Gaussian blur
 - Custom shader implementations for realistic glass effects
 - Modular component architecture for maintainability
 - Custom Leva UI components for intuitive parameter controls
-- Vite-powered development environment for fast iteration
 
 ## Getting Started
 

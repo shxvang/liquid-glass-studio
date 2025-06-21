@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { createPlugin, useInputContext, type LevaInputProps, Components } from 'leva/plugin';
 import './LevaContainer.scss';
 import clsx from 'clsx';

@@ -1,6 +1,6 @@
-import { CSSProperties, useEffect, useMemo, useRef } from 'react';
+import { type CSSProperties, useEffect, useMemo, useRef } from 'react';
 import './LevaImageUpload.scss';
-import { createPlugin, useInputContext, LevaInputProps, Components } from 'leva/plugin';
+import { createPlugin, useInputContext, type LevaInputProps, Components } from 'leva/plugin';
 import DeleteIcon from '@mui/icons-material/Delete';
 import clsx from 'clsx';
 const { Row, Label, String } = Components;

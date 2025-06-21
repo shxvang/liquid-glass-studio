@@ -19,12 +19,12 @@ import FragmentBgHblurShader from './shaders/fragment-bg-hblur.glsl?raw';
 import FragmentMainShader from './shaders/fragment-main.glsl?raw';
 import { Controller } from '@react-spring/web';
 
-import { useResizeObserver } from './utils/useResizeOberver';
+// import { useResizeObserver } from './utils/useResizeOberver';
 import clsx from 'clsx';
 import { useControls, folder, Leva } from 'leva';
 import { computeGaussianKernelByRadius, isChineseLanguage } from './utils';
 import { LevaVectorNew } from './components/LevaVectorNew/LevaVectorNew';
-import { LevaImageUpload } from './components/LevaImageUpload/LevaImageUpload';
+// import { LevaImageUpload } from './components/LevaImageUpload/LevaImageUpload';
 import { LevaContainer } from './components/LevaContainer/LevaContainer';
 
 import bgBarH from '@/assets/bg-bar-h.png';
@@ -57,6 +57,7 @@ function App() {
     return languages[langName];
   }, [langName]);
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [controls, controlsAPI] = useControls(
     () => ({
       ['⚙️']: folder({
@@ -487,7 +488,7 @@ function App() {
       bgTextureUrl: null as typeof stateRef.current.bgTextureUrl,
     };
     // let startTime: number | null = null
-    const render = (t: number) => {
+    const render = () => {
       raf = requestAnimationFrame(render);
 
       // let time = 0;

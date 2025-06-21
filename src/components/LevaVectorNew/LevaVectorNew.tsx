@@ -1,8 +1,8 @@
-import { type CSSProperties, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { type CSSProperties, useLayoutEffect, useRef, useState } from 'react';
 import './LevaVectorNew.scss';
 import { createPlugin, useInputContext, type LevaInputProps, Components } from 'leva/plugin';
 import clsx from 'clsx';
-import { type StoreType } from 'leva/dist/declarations/src/types';
 const { Row, Label, Number: NumberComp, Portal } = Components;
 
 type VectorNewSettings = {
@@ -200,7 +200,7 @@ function Joystick({
 
           onUpdate(value);
         };
-        const onPointerUp = (e: PointerEvent) => {
+        const onPointerUp = () => {
           setShowPop(false);
 
           document.body.removeEventListener('pointermove', onPointerMove);
@@ -237,7 +237,7 @@ function Joystick({
 
 function LevaVectorNewComponent() {
   const props = useInputContext<VectorNewLevaProps>();
-  const { label, displayValue, onUpdate, onChange, settings, value, disabled } = props;
+  const { label, displayValue, onUpdate, onChange, settings, value } = props;
   const settingsRequired = settings as Required<VectorNewSettings>;
   const { step, showVectorLine, joystickSize } = settingsRequired;
 
@@ -323,8 +323,6 @@ const sanitize = (
   value: VectorNewValueType,
   settings: VectorNewSettings,
   lastValue: VectorNewValueType,
-  path: string,
-  store: StoreType
 ): VectorNewValueType => {
   const precision = parseInt(settings.precision! as any);
 
@@ -369,7 +367,7 @@ const sanitize = (
   };
 };
 
-const format = (v: VectorNewValueType, settings: VectorNewSettings) => {
+const format = (v: VectorNewValueType) => {
   return {
     x: v.x,
     y: v.y,

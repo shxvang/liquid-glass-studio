@@ -27,12 +27,11 @@ Apple Liquid Glass UI 在 Web 平台上的高保真复刻，基于 WebGL2 和 Sh
 
 ## 技术亮点
 
-- 使用 React 19 和 TypeScript 构建，提供强类型保障
 - 基于 WebGL 的高性能图形渲染
+- 多 Pass 渲染机制，实现高质量高斯模糊
 - 自定义 Shader 实现真实玻璃质感
 - 模块化组件架构，方便维护与扩展
 - 使用自定义 Leva UI 控件，实现参数可视化控制
-- 基于 Vite 的开发环境，快速构建与热更新支持
 
 ## 快速开始
 
