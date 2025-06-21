@@ -19,8 +19,8 @@ import clsx from 'clsx';
 function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [canvasInfo, setCanvasInfo] = useState<{ width: number; height: number; dpr: number }>({
-    width: 700,
-    height: 700,
+    width: 1300,
+    height: 1300,
     dpr: 1,
   });
   const stateRef = useRef<{
