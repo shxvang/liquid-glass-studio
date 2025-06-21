@@ -7,4 +7,23 @@
 .canvas {
   transform: scale(calc(1 / var(--dpr)));
   transform-origin: top left;
+  touch-action: none;
+}
+
+.bgSelect {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.bgSelectItem {
+  width: 60px;
+  height: 60px;
+  flex-shrink: 0;
+  border: 1px solid var(--leva-colors-elevation3);
+  border-radius: var(--leva-radii-sm);
+  background-size: cover;
+
+  &Active {
+    outline: 2px solid var(--leva-colors-accent2);
+  }
 }

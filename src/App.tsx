@@ -8,7 +8,7 @@ import {
   type CSSProperties,
 } from 'react';
 import styles from './App.module.scss';
-import { MultiPassRenderer } from './utils/GLUtils';
+import { loadTextureFromURL, MultiPassRenderer } from './utils/GLUtils';
 import { ResizableWindow } from './components/ResizableWindow';
 import type { ResizeWindowCtrlRefType } from './components/ResizableWindow/ResizableWindow';
 
@@ -17,104 +17,243 @@ import FragmentBgShader from './shaders/fragment-bg.glsl?raw';
 import FragmentBgVblurShader from './shaders/fragment-bg-vblur.glsl?raw';
 import FragmentBgHblurShader from './shaders/fragment-bg-hblur.glsl?raw';
 import FragmentMainShader from './shaders/fragment-main.glsl?raw';
+import { Controller } from '@react-spring/web';
 
 import { useResizeObserver } from './utils/useResizeOberver';
 import clsx from 'clsx';
-import { useControls, folder } from 'leva';
+import { useControls, folder, Leva } from 'leva';
 import { computeGaussianKernelByRadius } from './utils';
+import { LevaVectorNew } from './components/LevaVectorNew/LevaVectorNew';
+import { LevaImageUpload } from './components/LevaImageUpload/LevaImageUpload';
+import { LevaContainer } from './components/LevaContainer/LevaContainer';
+
+import bgBarH from '@/assets/bg-bar-h.png';
+import bgHalf from '@/assets/bg-half.png';
+import bgGrid from '@/assets/bg-grid.png';
+import bgTahoeLightImg from '@/assets/bg-tahoe-light.webp';
+import bgTahoeDarkImg from '@/assets/bg-tahoe-dark.webp';
 
 function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [canvasInfo, setCanvasInfo] = useState<{ width: number; height: number; dpr: number }>({
-    width: 1000,
-    height: 1000,
+    width: Math.max(Math.min(window.innerWidth, window.innerHeight) - 100, 600),
+    height: Math.max(Math.min(window.innerWidth, window.innerHeight) - 100, 600),
     dpr: 1,
   });
-  const [controls, controlsAPI] = useControls(() => ({
-    blurRadius: {
-      label: '模糊半径',
-      min: 1,
-      max: 200,
-      step: 1,
-      value: 1,
-    },
-    mergeRate: {
-      label: '融合度',
-      min: 0,
-      max: 0.3,
-      step: 0.01,
-      value: 0.05,
-    },
-    tint: {
-      label: '色调',
-      value: { r: 255, b: 255, g: 255, a: 0 },
-    },
-    refThickness: {
-      label: '折射厚度',
-      min: 1,
-      max: 80,
-      step: 0.01,
-      value: 20,
-    },
-    refFactor: {
-      label: '折射系数',
-      min: 1,
-      max: 2,
-      step: 0.01,
-      value: 1.4
-    },
-    refDispersion: {
-      label: '色散增益',
-      min: 0,
-      max: 20,
-      step: 0.01,
-      value: 7
-    },
-    refFresnelRange: {
-      label: '菲涅尔反射范围',
-      min: 0,
-      max: 50,
-      step: 0.01,
-      value: 25,
-    },
-    refFresnelFactor: {
-      label: '菲涅尔反射强度',
-      min: 0,
-      max: 100,
-      step: 0.01,
-      value: 100,
-    },
-    形状设置: folder({
-      shapeWidth: {
-        label: '宽',
-        min: 50,
-        max: 800,
-        step: 1,
-        value: 200,
-      },
-      shapeHeight: {
-        label: '高',
-        min: 50,
-        max: 800,
-        step: 1,
-        value: 200,
-      },
-      shapeRadius: {
-        label: '圆角 (%)',
+  const [bgType, setBgType] = useState(0);
+  const [controls, controlsAPI] = useControls(
+    () => ({
+      refThickness: {
+        label: '折射厚度',
         min: 1,
-        max: 100,
-        step: 0.1,
-        value: 80,
-      },
-      shapeRoundness: {
-        label: '超椭圆系数',
-        min: 2,
-        max: 7,
+        max: 80,
         step: 0.01,
-        value: 5,
+        value: 20,
       },
+      refFactor: {
+        label: '折射系数',
+        min: 1,
+        max: 2,
+        step: 0.01,
+        value: 1.4,
+      },
+      refDispersion: {
+        label: '色散增益',
+        min: 0,
+        max: 20,
+        step: 0.01,
+        value: 7,
+      },
+      refFresnelRange: {
+        label: '菲涅尔反射范围',
+        min: 0,
+        max: 90,
+        step: 0.01,
+        value: 35,
+      },
+      refFresnelFactor: {
+        label: '菲涅尔反射强度',
+        min: 0,
+        max: 100,
+        step: 0.01,
+        value: 100,
+      },
+      glareAngle: {
+        label: '高光角度',
+        min: -180,
+        max: 180,
+        step: 0.01,
+        value: 45,
+      },
+      blurRadius: {
+        label: '模糊半径',
+        min: 1,
+        max: 200,
+        step: 1,
+        value: 1,
+      },
+      blurMargin: {
+        label: '边缘模糊度',
+        min: 0,
+        max: 100,
+        step: 0.01,
+        value: 100,
+      },
+      tint: {
+        label: '色调',
+        value: { r: 255, b: 255, g: 255, a: 0 },
+      },
+      shadowExpand: {
+        label: '阴影扩散',
+        min: 2,
+        max: 100,
+        step: 0.01,
+        value: 25,
+      },
+      shadowFactor: {
+        label: '阴影强度',
+        min: 0,
+        max: 100,
+        step: 0.01,
+        value: 25,
+      },
+      shadowPosition: LevaVectorNew({
+        label: '阴影位置',
+        x: 0,
+        y: -10,
+        xMax: 20,
+        yMax: 20,
+      }),
+      bgType: LevaContainer({
+        label: '背景类型',
+        contentValue: 0,
+        content: ({ value, setValue }) => (
+          <div className={styles.bgSelect}>
+            {[
+              { v: 0, img: bgBarH, loadTexture: false },
+              { v: 1, img: bgHalf, loadTexture: false },
+              { v: 2, img: bgGrid, loadTexture: false },
+              { v: 3, img: bgTahoeLightImg, loadTexture: true },
+              { v: 4, img: bgTahoeDarkImg, loadTexture: true },
+            ].map(({ v, img, loadTexture }) => {
+              return (
+                <div
+                  className={clsx(styles.bgSelectItem, {
+                    [styles.bgSelectItemActive]: value === v
+                  })}
+                  style={{ backgroundImage: `url(${img})` }}
+                  onClick={() => {
+                    setValue(v);
+
+                    if (loadTexture) {
+                      stateRef.current.bgTextureUrl = img;
+                    } else {
+                      stateRef.current.bgTextureUrl = null;
+                    }
+                  }}
+                >
+                </div>
+              );
+            })}
+            {/* <div
+            style={{ color: value === 0 ? 'red' : '' }}
+            onClick={() => {
+              setValue(0);
+            }}
+          >
+            0
+          </div>
+          <div
+            style={{ color: value === 1 ? 'red' : '' }}
+            onClick={() => {
+              setValue(1);
+            }}
+          >
+            1
+          </div>
+          <div
+            style={{ color: value === 2 ? 'red' : '' }}
+            onClick={() => {
+              setValue(2);
+            }}
+          >
+            2
+          </div>
+          <div
+            style={{ color: value === 2 ? 'red' : '', backgroundImage: `url(${tahoeLightImg})` }}
+            onClick={() => {
+              setValue(2);
+            }}
+          >
+            3
+          </div>
+          <div
+            style={{ color: value === 2 ? 'red' : '', backgroundImage: `url(${tahoeLightImg})` }}
+            onClick={() => {
+              setValue(2);
+            }}
+          >
+            3
+          </div> */}
+          </div>
+        ),
+      }),
+      customBgImage: LevaImageUpload({
+        label: '自定义背景',
+        file: undefined,
+        // disabled: renderProps.isRendering,
+        // alphaPatternColorA: '#bbb',
+        // alphaPatternColorB: '#eee',
+      }),
+      形状设置: folder({
+        shapeWidth: {
+          label: '宽',
+          min: 20,
+          max: 800,
+          step: 1,
+          value: 200,
+        },
+        shapeHeight: {
+          label: '高',
+          min: 20,
+          max: 800,
+          step: 1,
+          value: 200,
+        },
+        shapeRadius: {
+          label: '圆角 (%)',
+          min: 1,
+          max: 100,
+          step: 0.1,
+          value: 80,
+        },
+        shapeRoundness: {
+          label: '超椭圆系数',
+          min: 2,
+          max: 7,
+          step: 0.01,
+          value: 5,
+        },
+        mergeRate: {
+          label: '形状融合度',
+          min: 0,
+          max: 0.3,
+          step: 0.01,
+          value: 0.05,
+        },
+      }),
+      动画设置: folder({
+        springSizeFactor: {
+          label: '速度形变',
+          min: 0,
+          max: 50,
+          step: 0.01,
+          value: 10,
+        },
+      }),
     }),
-  }));
+    [],
+  );
 
   const stateRef = useRef<{
     canvasWindowCtrlRef: ResizeWindowCtrlRefType | null;
@@ -129,6 +268,13 @@ function App() {
     canvasPointerPos: { x: number; y: number };
     controls: typeof controls;
     blurWeights: number[];
+    lastMouseSpringValue: { x: number; y: number };
+    lastMouseSpringTime: null | number;
+    mouseSpring: Controller<{ x: number; y: number }>;
+    mouseSpringSpeed: { x: number; y: number };
+    bgTextureUrl: string | null;
+    bgTexture: WebGLTexture | null;
+    bgTextureRatio: number;
   }>({
     canvasWindowCtrlRef: null,
     renderRaf: null,
@@ -144,6 +290,45 @@ function App() {
     },
     controls,
     blurWeights: [],
+    lastMouseSpringValue: {
+      x: 0,
+      y: 0,
+    },
+
+    lastMouseSpringTime: null,
+    mouseSpring: new Controller({
+      x: 0,
+      y: 0,
+      onChange: (c) => {
+        if (!stateRef.current.lastMouseSpringTime) {
+          stateRef.current.lastMouseSpringTime = Date.now();
+          stateRef.current.lastMouseSpringValue = c.value;
+          return;
+        }
+
+        const now = Date.now();
+        const lastValue = stateRef.current.lastMouseSpringValue;
+        const dt = now - stateRef.current.lastMouseSpringTime;
+        const dx = {
+          x: c.value.x - lastValue.x,
+          y: c.value.y - lastValue.y,
+        };
+        stateRef.current.mouseSpringSpeed = {
+          x: dx.x / dt,
+          y: dx.y / dt,
+        };
+
+        stateRef.current.lastMouseSpringValue = c.value;
+        stateRef.current.lastMouseSpringTime = now;
+      },
+    }),
+    mouseSpringSpeed: {
+      x: 0,
+      y: 0,
+    },
+    bgTextureUrl: null,
+    bgTexture: null,
+    bgTextureRatio: 1,
   });
   stateRef.current.canvasInfo = canvasInfo;
   stateRef.current.controls = controls;
@@ -205,6 +390,7 @@ function App() {
           (stateRef.current.canvasInfo.height - (e.clientY - stateRef.current.canvasPos.y)) *
           canvasInfo.dpr,
       };
+      stateRef.current.mouseSpring.start(stateRef.current.canvasPointerPos);
     };
     canvasEl.addEventListener('pointermove', onPointerMove);
 
@@ -273,11 +459,23 @@ function App() {
     let raf: number | null = null;
     const lastState = {
       canvasInfo: null as typeof canvasInfo | null,
+      bgTextureUrl: null as typeof stateRef.current.bgTextureUrl,
     };
+    // let startTime: number | null = null
     const render = (t: number) => {
       raf = requestAnimationFrame(render);
 
+      // let time = 0;
+      // if (!startTime) {
+      //   startTime = t;
+      // } else {
+      //   time = t - startTime;
+      // }
+
+      // console.log(time);
+
       const canvasInfo = stateRef.current.canvasInfo;
+      const textureUrl = stateRef.current.bgTextureUrl;
       if (
         !lastState.canvasInfo ||
         lastState.canvasInfo.width !== canvasInfo.width ||
@@ -297,32 +495,72 @@ function App() {
         ]);
         lastState.canvasInfo = canvasInfo;
       }
+      if (textureUrl !== lastState.bgTextureUrl) {
+        if (!textureUrl) {
+          if (stateRef.current.bgTexture) {
+            gl.deleteTexture(stateRef.current.bgTexture);
+            stateRef.current.bgTexture = null;
+          }
+        } else {
+          loadTextureFromURL(gl, textureUrl).then(({ texture, ratio }) => {
+            if (stateRef.current.bgTextureUrl === textureUrl) {
+              stateRef.current.bgTexture = texture;
+              stateRef.current.bgTextureRatio = ratio;
+            }
+          });
+        }
+
+        lastState.bgTextureUrl = stateRef.current.bgTextureUrl;
+      }
 
       gl.clearColor(0, 0, 0, 0);
       gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
+      const controls = stateRef.current.controls;
+      const mouseSpring = stateRef.current.mouseSpring.get();
+
+      const shapeSizeSpring = {
+        x:
+          controls.shapeWidth +
+          (Math.abs(stateRef.current.mouseSpringSpeed.x) *
+            controls.shapeWidth *
+            controls.springSizeFactor) /
+          100,
+        y:
+          controls.shapeHeight +
+          (Math.abs(stateRef.current.mouseSpringSpeed.y) *
+            controls.shapeHeight *
+            controls.springSizeFactor) /
+          100,
+      };
+
       renderer.setUniforms({
+        u_resolution: [canvasInfo.width * canvasInfo.dpr, canvasInfo.height * canvasInfo.dpr],
+        u_dpr: canvasInfo.dpr,
         u_blurWeights: stateRef.current.blurWeights,
         u_blurRadius: stateRef.current.controls.blurRadius,
+        u_mouse: [stateRef.current.canvasPointerPos.x, stateRef.current.canvasPointerPos.y],
+        u_mouseSpring: [mouseSpring.x, mouseSpring.y],
+        u_shapeWidth: shapeSizeSpring.x,
+        u_shapeHeight: shapeSizeSpring.y,
+        u_shapeRadius:
+          ((Math.min(shapeSizeSpring.x, shapeSizeSpring.y) / 2) * controls.shapeRadius) / 100,
+        u_shapeRoundness: controls.shapeRoundness,
+        u_mergeRate: controls.mergeRate,
+        u_glareAngle: (controls.glareAngle * Math.PI) / 180,
       });
 
-      const controls = stateRef.current.controls;
-
       renderer.render({
+        bgPass: {
+          u_bgType: controls.bgType,
+          u_bgTexture: (stateRef.current.bgTextureUrl && stateRef.current.bgTexture) ?? undefined,
+          u_bgTextureRatio: (stateRef.current.bgTextureUrl && stateRef.current.bgTexture) ? stateRef.current.bgTextureRatio : undefined,
+          u_shadowExpand: controls.shadowExpand,
+          u_shadowFactor: controls.shadowFactor / 100,
+          u_shadowPosition: [-controls.shadowPosition.x, -controls.shadowPosition.y],
+        },
         mainPass: {
-          u_mouse: [stateRef.current.canvasPointerPos.x, stateRef.current.canvasPointerPos.y],
-          u_shapeWidth: controls.shapeWidth,
-          u_shapeHeight: controls.shapeHeight,
-          u_shapeRadius:
-            ((Math.min(
-              controls.shapeWidth,
-              controls.shapeHeight,
-            ) /
-              2) *
-              controls.shapeRadius) /
-            100,
-          u_shapeRoundness: controls.shapeRoundness,
-          u_mergeRate: controls.mergeRate,
+          u_blurMargin: controls.blurMargin / 100,
           u_tint: [
             controls.tint.r / 255,
             controls.tint.g / 255,
@@ -528,6 +766,18 @@ function App() {
           />
         </div>
       </ResizableWindow>
+      <Leva
+        theme={{
+          sizes: {
+            rootWidth: '320px',
+            numberInputMinWidth: '42px',
+            controlWidth: '200px',
+          },
+          space: {
+            colGap: '5px',
+          },
+        }}
+      ></Leva>
     </>
   );
 }
