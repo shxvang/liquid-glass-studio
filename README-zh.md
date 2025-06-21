@@ -6,6 +6,8 @@ Apple Liquid Glass UI 在 Web 平台上的高保真复刻，基于 WebGL2 和 Sh
 
 ## 在线演示
 
+https://liquid-glass-studio.vercel.app/
+
 ## 截图预览
 
 ## 功能特性
