@@ -2,38 +2,87 @@ import {
   useCallback,
   useEffect,
   useLayoutEffect,
+  useMemo,
   useRef,
   useState,
   type CSSProperties,
 } from 'react';
 import styles from './App.module.scss';
-import { createProgram, createShader } from './utils/GLUtils';
+import { MultiPassRenderer } from './utils/GLUtils';
 import { ResizableWindow } from './components/ResizableWindow';
 import type { ResizeWindowCtrlRefType } from './components/ResizableWindow/ResizableWindow';
 
 import VertexShader from './shaders/vertex.glsl?raw';
-import FragmentShader from './shaders/fragment.glsl?raw';
+import FragmentBgShader from './shaders/fragment-bg.glsl?raw';
+import FragmentBgVblurShader from './shaders/fragment-bg-vblur.glsl?raw';
+import FragmentBgHblurShader from './shaders/fragment-bg-hblur.glsl?raw';
+import FragmentMainShader from './shaders/fragment-main.glsl?raw';
+
 import { useResizeObserver } from './utils/useResizeOberver';
 import clsx from 'clsx';
+import { useControls, folder } from 'leva';
+import { computeGaussianKernelByRadius } from './utils';
 
 function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [canvasInfo, setCanvasInfo] = useState<{ width: number; height: number; dpr: number }>({
-    width: 1300,
-    height: 1300,
+    width: 600,
+    height: 600,
     dpr: 1,
   });
+  const [controls, controlsAPI] = useControls(() => ({
+    blurRadius: {
+      label: '模糊半径',
+      min: 1,
+      max: 200,
+      step: 1,
+      value: 60,
+    },
+    形状设置: folder({
+      shapeWidth: {
+        label: '宽',
+        min: 50,
+        max: 800,
+        step: 1,
+        value: 200,
+      },
+      shapeHeight: {
+        label: '高',
+        min: 50,
+        max: 800,
+        step: 1,
+        value: 200,
+      },
+      shapeRadius: {
+        label: '圆角 (%)',
+        min: 1,
+        max: 100,
+        step: 0.1,
+        value: 80,
+      },
+      shapeRoundness: {
+        label: '超椭圆系数',
+        min: 2,
+        max: 7,
+        step: 0.01,
+        value: 5
+      }
+    })
+  }));
+
   const stateRef = useRef<{
     canvasWindowCtrlRef: ResizeWindowCtrlRefType | null;
     renderRaf: number | null;
     canvasInfo: typeof canvasInfo;
     glStates: {
       gl: WebGL2RenderingContext;
-      program: WebGLProgram;
+      programs: Record<string, WebGLProgram>;
       vao: WebGLVertexArrayObject;
     } | null;
     canvasPos: { x: number; y: number };
     canvasPointerPos: { x: number; y: number };
+    controls: typeof controls;
+    blurWeights: number[];
   }>({
     canvasWindowCtrlRef: null,
     renderRaf: null,
@@ -47,8 +96,15 @@ function App() {
       x: 0,
       y: 0,
     },
+    controls,
+    blurWeights: [],
   });
   stateRef.current.canvasInfo = canvasInfo;
+  stateRef.current.controls = controls;
+
+  useMemo(() => {
+    stateRef.current.blurWeights = computeGaussianKernelByRadius(controls.blurRadius);
+  }, [controls.blurRadius]);
 
   const centerizeCanvasWindow = useCallback(() => {
     const ctrl = stateRef.current.canvasWindowCtrlRef;
@@ -93,16 +149,16 @@ function App() {
 
     const canvasEl = canvasRef.current;
     const onPointerMove = (e: PointerEvent) => {
-      // stateRef.current.canvasPointerPos.x = e.clientX;
       const canvasInfo = stateRef.current.canvasInfo;
       if (!canvasInfo) {
         return;
       }
       stateRef.current.canvasPointerPos = {
         x: (e.clientX - stateRef.current.canvasPos.x) * canvasInfo.dpr,
-        y: (stateRef.current.canvasInfo.height - (e.clientY - stateRef.current.canvasPos.y)) * canvasInfo.dpr,
+        y:
+          (stateRef.current.canvasInfo.height - (e.clientY - stateRef.current.canvasPos.y)) *
+          canvasInfo.dpr,
       };
-      // console.log(stateRef.current.canvasPos.x, stateRef.current.canvasPos.y);
     };
     canvasEl.addEventListener('pointermove', onPointerMove);
 
@@ -111,130 +167,105 @@ function App() {
       return;
     }
 
-    // 创建shaders
-    const vertexShader = createShader(gl, gl.VERTEX_SHADER, VertexShader);
-    const fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, FragmentShader);
-
-    if (!vertexShader || !fragmentShader) {
-      return;
-    }
-
-    // 创建program
-    const program = createProgram(gl, vertexShader, fragmentShader);
-    if (!program) {
-      return;
-    }
-
-    // 输入用户绘制的数据
-    // 创建buffer
-    const positionBuffer = gl.createBuffer();
-    // 绑定到全局的 gl.ARRAY_BUFFER 绑定点上，供后续操作
-    gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
-    // 往Buffer上存放数据
-    const positionData = new Float32Array([-1, -1, -1, 1, 1, -1, 1, 1]);
-    gl.bufferData(gl.ARRAY_BUFFER, positionData, gl.STATIC_DRAW);
-
-    // 创建buffer
-    const vcolorBuffer = gl.createBuffer();
-    // 绑定到全局的 gl.ARRAY_BUFFER 绑定点上，供后续操作
-    gl.bindBuffer(gl.ARRAY_BUFFER, vcolorBuffer);
-    // 往Buffer上存放数据
-    const vcolorData = new Uint8Array([
-      255, 0, 0, 255, 0, 255, 0, 255, 0, 0, 255, 255, 255, 255, 255, 255,
+    const renderer = new MultiPassRenderer(canvasEl, [
+      {
+        name: 'bgPass',
+        shader: {
+          vertex: VertexShader,
+          fragment: FragmentBgShader,
+        },
+      },
+      {
+        name: 'vBlurPass',
+        shader: {
+          vertex: VertexShader,
+          fragment: FragmentBgVblurShader,
+        },
+        inputs: {
+          u_prevPassTexture: 'bgPass'
+        },
+      },
+      {
+        name: 'hBlurPass',
+        shader: {
+          vertex: VertexShader,
+          fragment: FragmentBgHblurShader,
+        },
+        inputs: {
+          u_prevPassTexture: 'vBlurPass'
+        },
+      },
+      {
+        name: 'mainPass',
+        shader: {
+          vertex: VertexShader,
+          fragment: FragmentMainShader,
+        },
+        inputs: {
+          u_blurredBg: 'hBlurPass',
+          u_bg: 'bgPass'
+        },
+        outputToScreen: true
+      }
     ]);
-    gl.bufferData(gl.ARRAY_BUFFER, vcolorData, gl.STATIC_DRAW);
 
-    //创建VAO
-    // VAO，属性状态的集合，可以保存一堆 attributes （定义了buffer如何被访问）
-    const vao = gl.createVertexArray();
-    // 绑定到全局的 VERTEX_ARRAY_BINDING 绑定点上，供后续操作
-    gl.bindVertexArray(vao);
-
-    // 设置attribute对应的数据和数据读取方式
-    // 获取属性（attribute）的索引号。使用索引号来引用到GPU维护的属性列表中
-    const positionAttributeLocation = gl.getAttribLocation(program, 'a_position');
-    // 获取uniform的索引号
-    const uResolutionLocation = gl.getUniformLocation(program, 'u_resolution');
-    const uMouseLocation = gl.getUniformLocation(program, 'u_mouse');
-    const uTimeLocation = gl.getUniformLocation(program, 'u_time');
-
-    // 激活该index下的属性以便使用
-    gl.enableVertexAttribArray(positionAttributeLocation);
-    // 这里前序已经操作过了，可以不做。但是如果被改变了，这里需调整回来
-    gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
-    // 告诉显卡，这个attribute如何 读取和使用 当前在 gl.ARRAY_BUFFER 上对应的buffer数据
-    // 相关信息存储在VAO（的attributes）中
-    gl.vertexAttribPointer(
-      positionAttributeLocation, // index: attribute索引号
-      2, // size: 每次vertex shader迭代，所使用的buffer元素数量，这里是2个值（x，y坐标）
-      gl.FLOAT, // type: 值类型
-      false, // normalized: 是否normalize（归一化），例如gl.BYTE类型（-128～127）将转换为[-1, 1], gl.UNSIGNED_BYTE 转换为[0, 1]
-      0, // stride：buffer中每次迭代跳过的数据偏移量。为0则为紧密打包的。
-      0, // offset: 顶点数组的第一个部分的字节偏移量。必须是字节长度的倍数
-    );
-
-    // 获取属性（attribute）的索引号。使用索引号来引用到GPU维护的属性列表中
-    const vcolorAttributeLocation = gl.getAttribLocation(program, 'a_color');
-    // 激活该index下的属性以便使用
-    gl.enableVertexAttribArray(vcolorAttributeLocation);
-    // 这里前序已经操作过了，可以不做。但是如果被改变了，这里需调整回来
-    gl.bindBuffer(gl.ARRAY_BUFFER, vcolorBuffer);
-    // 告诉显卡，这个attribute如何 读取和使用 当前在 gl.ARRAY_BUFFER 上对应的buffer数据
-    // 相关信息存储在VAO（的attributes）中
-    gl.vertexAttribPointer(
-      vcolorAttributeLocation, // index: attribute索引号
-      4, // size: 每次vertex shader迭代，所使用的buffer元素数量，这里是2个值（x，y坐标）
-      gl.UNSIGNED_BYTE, // type: 值类型
-      true, // normalized: 是否normalize（归一化），例如gl.BYTE类型（-128～127）将转换为[-1, 1], gl.UNSIGNED_BYTE 转换为[0, 1]
-      0, // stride：buffer中每次迭代跳过的数据偏移量。为0则为紧密打包的。
-      0, // offset: 顶点数组的第一个部分的字节偏移量。必须是字节长度的倍数
-    );
-
-    // // 现在，各种状态值准备就绪
-    // // 可以启用program了，此时program能够通过VAO读取顶点相关的attributes和buffer
-    // // 传入link好的shader中进行处理和绘制了
-    // gl.useProgram(program);
-    // //
-    // gl.drawArrays(gl.TRIANGLE_STRIP, 0, 3);
-    stateRef.current.glStates = {
-      gl,
-      program,
-      vao,
-    };
+    // renderer.addPass(
+    //   {
+    //     vertex: VertexShader,
+    //     fragment: FragmentBgShader,
+    //   },
+    //   true,
+    // );
+    // renderer.addPass(
+    //   {
+    //     vertex: VertexShader,
+    //     fragment: FragmentBgVblurShader,
+    //   },
+    //   false,
+    // )
 
     let raf: number | null = null;
+    const lastState = {
+      canvasInfo: null as typeof canvasInfo | null,
+    };
     const render = (t: number) => {
       raf = requestAnimationFrame(render);
-      if (!stateRef.current.glStates) {
-        return;
+
+      const canvasInfo = stateRef.current.canvasInfo;
+      if (
+        !lastState.canvasInfo ||
+        lastState.canvasInfo.width !== canvasInfo.width ||
+        lastState.canvasInfo.height !== canvasInfo.height ||
+        lastState.canvasInfo.dpr !== canvasInfo.dpr
+      ) {
+        gl.viewport(
+          0,
+          0,
+          Math.round(canvasInfo.width * canvasInfo.dpr),
+          Math.round(canvasInfo.height * canvasInfo.dpr),
+        );
+        renderer.resize(canvasInfo.width * canvasInfo.dpr, canvasInfo.height * canvasInfo.dpr);
+        renderer.setUniform('u_resolution', [canvasInfo.width * canvasInfo.dpr, canvasInfo.height * canvasInfo.dpr]);
+        lastState.canvasInfo = canvasInfo;
       }
-
-      const { gl, program, vao } = stateRef.current.glStates;
-      const { canvasInfo } = stateRef.current;
-
-      gl.viewport(
-        0,
-        0,
-        Math.round(canvasInfo.width * canvasInfo.dpr),
-        Math.round(canvasInfo.height * canvasInfo.dpr),
-      );
 
       gl.clearColor(0, 0, 0, 0);
       gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-      gl.useProgram(program);
+      renderer.setUniforms({
+        u_blurWeights: stateRef.current.blurWeights,
+        u_blurRadius: stateRef.current.controls.blurRadius,
+      })
 
-      gl.bindVertexArray(vao);
-      gl.uniform2f(
-        uResolutionLocation,
-        Math.round(canvasInfo.width * canvasInfo.dpr),
-        Math.round(canvasInfo.height * canvasInfo.dpr),
-      );
-      // console.log(canvasInfo)
-      gl.uniform2f(uMouseLocation, stateRef.current.canvasPointerPos.x, stateRef.current.canvasPointerPos.y);
-      // gl.uniform1f(timeUniformLocation, t / 1000);
-
-      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+      renderer.render({
+        mainPass: {
+          u_mouse: [stateRef.current.canvasPointerPos.x, stateRef.current.canvasPointerPos.y],
+          u_shapeWidth: stateRef.current.controls.shapeWidth,
+          u_shapeHeight: stateRef.current.controls.shapeHeight,
+          u_shapeRadius: Math.min(stateRef.current.controls.shapeWidth, stateRef.current.controls.shapeHeight) / 2 * stateRef.current.controls.shapeRadius / 100,
+          u_shapeRoundness: stateRef.current.controls.shapeRoundness,
+        }
+      });
     };
     raf = requestAnimationFrame(render);
 
@@ -244,6 +275,156 @@ function App() {
         cancelAnimationFrame(raf);
       }
     };
+
+    // // 创建shaderss
+    // const vertexShader = createShader(gl, gl.VERTEX_SHADER, VertexShader);
+    // const fragmentBgShader = createShader(gl, gl.FRAGMENT_SHADER, FragmentBgShader);
+    // const fragmentBgVblurShader = createShader(gl, gl.FRAGMENT_SHADER, FragmentBgVblurShader);
+    // const fragmentMainShader = createShader(gl, gl.FRAGMENT_SHADER, FragmentMainShader);
+    // if (!vertexShader || !fragmentBgShader || !fragmentBgVblurShader || !fragmentMainShader) {
+    //   return;
+    // }
+
+    // // 创建programs
+    // const programBg = createProgram(gl, vertexShader, fragmentBgShader);
+    // const programBgVblur = createProgram(gl, vertexShader, fragmentBgVblurShader);
+    // const programMain = createProgram(gl, vertexShader, fragmentMainShader);
+    // if (!programBg || !programMain || !programBgVblur) {
+    //   return;
+    // }
+
+    // // 输入用户绘制的数据
+    // // 创建buffer
+    // const positionBuffer = gl.createBuffer();
+    // // 绑定到全局的 gl.ARRAY_BUFFER 绑定点上，供后续操作
+    // gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+    // // 往Buffer上存放数据
+    // const positionData = new Float32Array([-1, -1, -1, 1, 1, -1, 1, 1]);
+    // gl.bufferData(gl.ARRAY_BUFFER, positionData, gl.STATIC_DRAW);
+
+    // // 创建buffer
+    // const vcolorBuffer = gl.createBuffer();
+    // // 绑定到全局的 gl.ARRAY_BUFFER 绑定点上，供后续操作
+    // gl.bindBuffer(gl.ARRAY_BUFFER, vcolorBuffer);
+    // // 往Buffer上存放数据
+    // const vcolorData = new Uint8Array([
+    //   255, 0, 0, 255, 0, 255, 0, 255, 0, 0, 255, 255, 255, 255, 255, 255,
+    // ]);
+    // gl.bufferData(gl.ARRAY_BUFFER, vcolorData, gl.STATIC_DRAW);
+
+    // //创建VAO
+    // // VAO，属性状态的集合，可以保存一堆 attributes （定义了buffer如何被访问）
+    // const vao = gl.createVertexArray();
+    // // 绑定到全局的 VERTEX_ARRAY_BINDING 绑定点上，供后续操作
+    // gl.bindVertexArray(vao);
+
+    // // 设置attribute对应的数据和数据读取方式
+    // // 获取属性（attribute）的索引号。使用索引号来引用到GPU维护的属性列表中
+    // const positionAttributeLocation = gl.getAttribLocation(program, 'a_position');
+    // // 获取uniform的索引号
+    // const uResolutionLocation = gl.getUniformLocation(program, 'u_resolution');
+    // const uMouseLocation = gl.getUniformLocation(program, 'u_mouse');
+    // const uTimeLocation = gl.getUniformLocation(program, 'u_time');
+    // const uBlurRadiusLocation = gl.getUniformLocation(program, 'u_blurRadius');
+    // const uBlurWeightsLocation = gl.getUniformLocation(program, 'u_blurWeights');
+
+    // // 激活该index下的属性以便使用
+    // gl.enableVertexAttribArray(positionAttributeLocation);
+    // // 这里前序已经操作过了，可以不做。但是如果被改变了，这里需调整回来
+    // gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+    // // 告诉显卡，这个attribute如何 读取和使用 当前在 gl.ARRAY_BUFFER 上对应的buffer数据
+    // // 相关信息存储在VAO（的attributes）中
+    // gl.vertexAttribPointer(
+    //   positionAttributeLocation, // index: attribute索引号
+    //   2, // size: 每次vertex shader迭代，所使用的buffer元素数量，这里是2个值（x，y坐标）
+    //   gl.FLOAT, // type: 值类型
+    //   false, // normalized: 是否normalize（归一化），例如gl.BYTE类型（-128～127）将转换为[-1, 1], gl.UNSIGNED_BYTE 转换为[0, 1]
+    //   0, // stride：buffer中每次迭代跳过的数据偏移量。为0则为紧密打包的。
+    //   0, // offset: 顶点数组的第一个部分的字节偏移量。必须是字节长度的倍数
+    // );
+
+    // // 获取属性（attribute）的索引号。使用索引号来引用到GPU维护的属性列表中
+    // const vcolorAttributeLocation = gl.getAttribLocation(program, 'a_color');
+    // // 激活该index下的属性以便使用
+    // gl.enableVertexAttribArray(vcolorAttributeLocation);
+    // // 这里前序已经操作过了，可以不做。但是如果被改变了，这里需调整回来
+    // gl.bindBuffer(gl.ARRAY_BUFFER, vcolorBuffer);
+    // // 告诉显卡，这个attribute如何 读取和使用 当前在 gl.ARRAY_BUFFER 上对应的buffer数据
+    // // 相关信息存储在VAO（的attributes）中
+    // gl.vertexAttribPointer(
+    //   vcolorAttributeLocation, // index: attribute索引号
+    //   4, // size: 每次vertex shader迭代，所使用的buffer元素数量，这里是2个值（x，y坐标）
+    //   gl.UNSIGNED_BYTE, // type: 值类型
+    //   true, // normalized: 是否normalize（归一化），例如gl.BYTE类型（-128～127）将转换为[-1, 1], gl.UNSIGNED_BYTE 转换为[0, 1]
+    //   0, // stride：buffer中每次迭代跳过的数据偏移量。为0则为紧密打包的。
+    //   0, // offset: 顶点数组的第一个部分的字节偏移量。必须是字节长度的倍数
+    // );
+
+    // // 现在，各种状态值准备就绪
+    // // 可以启用program了，此时program能够通过VAO读取顶点相关的attributes和buffer
+    // // 传入link好的shader中进行处理和绘制了
+    // gl.useProgram(program);
+    // //
+    // gl.drawArrays(gl.TRIANGLE_STRIP, 0, 3);
+    // stateRef.current.glStates = {
+    //   gl,
+    //   programs: {
+    //     bg: programBg,
+    //     bgVblur: programBgVblur,
+    //     main: programMain,
+    //   },
+    //   vao,
+    // };
+
+    // let raf: number | null = null;
+    // const render = (t: number) => {
+    //   raf = requestAnimationFrame(render);
+    //   if (!stateRef.current.glStates) {
+    //     return;
+    //   }
+    //   if (!stateRef.current.blurWeights.length) {
+    //     return;
+    //   }
+
+    //   const { gl, program, vao } = stateRef.current.glStates;
+    //   const { canvasInfo } = stateRef.current;
+
+    //   gl.viewport(
+    //     0,
+    //     0,
+    //     Math.round(canvasInfo.width * canvasInfo.dpr),
+    //     Math.round(canvasInfo.height * canvasInfo.dpr),
+    //   );
+
+    //   gl.clearColor(0, 0, 0, 0);
+    //   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+    //   gl.useProgram(program);
+
+    //   gl.bindVertexArray(vao);
+    //   gl.uniform2f(
+    //     uResolutionLocation,
+    //     Math.round(canvasInfo.width * canvasInfo.dpr),
+    //     Math.round(canvasInfo.height * canvasInfo.dpr),
+    //   );
+    //   // console.log(canvasInfo)
+    //   gl.uniform2f(uMouseLocation, stateRef.current.canvasPointerPos.x, stateRef.current.canvasPointerPos.y);
+
+    //   gl.uniform1i(uBlurRadiusLocation, stateRef.current.controls.blurRadius);
+    //   gl.uniform1fv(uBlurWeightsLocation, stateRef.current.blurWeights);
+
+    //   // gl.uniform1f(timeUniformLocation, t / 1000);
+
+    //   gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    // };
+    // raf = requestAnimationFrame(render);
+
+    // return () => {
+    //   canvasEl.removeEventListener('pointermove', onPointerMove);
+    //   if (raf) {
+    //     cancelAnimationFrame(raf);
+    //   }
+    // };
   }, []);
 
   return (
