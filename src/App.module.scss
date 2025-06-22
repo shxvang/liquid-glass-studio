@@ -1,3 +1,58 @@
+.header {
+  position: fixed;
+  left: 50%;
+  top: 12px;
+  padding: 8px 12px;
+  gap: 8px;
+  transform: translateX(-50%);
+  color: white;
+  font-size: 12px;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-color-fore);
+  box-shadow: 0 2px 7px rgba(0, 0, 0, 0.5);
+  border-radius: 8px;
+  align-items: center;
+  font-family: sans-serif;
+
+  .logoWrapper {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .title {
+    font-size: 16px;
+    font-weight: bold;
+  }
+
+  .subtitle {
+    color: rgba(white, 0.75);
+    font-style: italic;
+  }
+
+  .content {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    .button,
+    .button > svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    .button {
+      color: white;
+      cursor: pointer;
+      &:hover {
+        color: rgb(150, 186, 222);
+      }
+    }
+  }
+}
+
 .canvasContainer {
   width: 100%;
   height: 100%;
