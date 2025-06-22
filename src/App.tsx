@@ -40,11 +40,14 @@ import bgVideo3 from '@/assets/bg-video-3.mp4';
 import languages from './utils/languages';
 import { LevaCheckButtons } from './components/LevaCheckButtons';
 
+import XIcon from '@mui/icons-material/X';
+import GitHubIcon from '@mui/icons-material/GitHub';
+
 function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [canvasInfo, setCanvasInfo] = useState<{ width: number; height: number; dpr: number }>({
-    width: Math.max(Math.min(window.innerWidth, window.innerHeight) - 100, 600),
-    height: Math.max(Math.min(window.innerWidth, window.innerHeight) - 100, 600),
+    width: Math.max(Math.min(window.innerWidth, window.innerHeight) - 150, 600),
+    height: Math.max(Math.min(window.innerWidth, window.innerHeight) - 150, 600),
     dpr: 1,
   });
 
@@ -644,6 +647,17 @@ function App() {
 
   return (
     <>
+      <header className={styles.header}>
+        <div className={styles.logoWrapper}>
+          <div className={styles.title}>Liquid Glass Studio</div>
+          <div className={styles.subtitle}>{lang['ui.subtitle']}</div>
+        </div>
+        <div className={styles.content}>
+          <span>by <a>iyinchao</a></span>
+          <a href="https://github.com/iyinchao/liquid-glass-studio" target="_blank" className={styles.button}><GitHubIcon /></a>
+          <a href="https://x.com/charles_yin/status/1936338569267986605" target="_blank" className={styles.button}><XIcon></XIcon></a>
+        </div>
+      </header>
       <ResizableWindow
         disableMove
         size={canvasInfo}
