@@ -274,6 +274,15 @@ function App() {
           value: 10,
         },
       }),
+      debug: folder({
+        step: {
+          label: 'Show Step',
+          value: 9,
+          min: 0,
+          max: 9,
+          step: 1,
+        },
+      })
     }),
     [langName],
   );
@@ -632,6 +641,7 @@ function App() {
           u_refDispersion: controls.refDispersion,
           u_refFresnelRange: controls.refFresnelRange,
           u_refFresnelFactor: controls.refFresnelFactor / 100,
+          STEP: controls.step,
         },
       });
     };
