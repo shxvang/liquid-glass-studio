@@ -239,14 +239,21 @@ void main() {
     // step2: edge factors
   } else if (STEP <= 3) {
     if (merged < 0.0) {
-      float nmerged = -10.0 * (merged * u_resolution1x.y) / 2000.0;
-      float thickness = u_refThickness / 100.0;
-      float edgeFactor = 0.0;
-      if (nmerged < thickness) {
-        edgeFactor = pow(1.0 - nmerged / thickness, 2.0);
+      float nmerged = -1.0 * (merged * u_resolution1x.y);
+
+      float x_R_ratio = 1.0 - nmerged / u_refThickness;
+      float thetaI = asin(pow(x_R_ratio, 2.0));
+      float thetaT = asin(1.0 / u_refFactor * sin(thetaI));
+      float edgeFactor = -1.0 * tan(thetaT - thetaI);
+      if (nmerged >= u_refThickness) {
+        edgeFactor = 0.0;
       }
 
-      outColor = vec4(vec3(edgeFactor), 1.0);
+      if (nmerged < u_refThickness) {
+        outColor = vec4(vec3(edgeFactor), 1.0);
+      } else {
+        outColor = vec4(vec3(0.0), 1.0);
+      }
     } else {
       outColor = vec4(0.0);
     }
@@ -255,11 +262,14 @@ void main() {
     if (merged < 0.0) {
       vec2 normal = getNormal(p1, p2, gl_FragCoord.xy);
       vec3 normalColor = vec2ToRgb(normal);
-      float nmerged = -10.0 * (merged * u_resolution1x.y) / 2000.0;
-      float thickness = u_refThickness / 100.0;
-      float edgeFactor = 0.0;
-      if (nmerged < thickness) {
-        edgeFactor = pow(1.0 - nmerged / thickness, 2.0);
+      float nmerged = -1.0 * (merged * u_resolution1x.y);
+
+      float x_R_ratio = 1.0 - nmerged / u_refThickness;
+      float thetaI = asin(pow(x_R_ratio, 2.0));
+      float thetaT = asin(1.0 / u_refFactor * sin(thetaI));
+      float edgeFactor = -1.0 * tan(thetaT - thetaI);
+      if (nmerged >= u_refThickness) {
+        edgeFactor = 0.0;
       }
 
       outColor = vec4(normalColor * edgeFactor, 1.0);
@@ -276,25 +286,23 @@ void main() {
   } else if (STEP <= 6) {
     if (merged < 0.0) {
       vec2 normal = getNormal(p1, p2, gl_FragCoord.xy);
-      float nmerged = -10.0 * (merged * u_resolution1x.y) / 2000.0;
-      float thickness = u_refThickness / 100.0;
-      float edgeFactor = 0.0;
-      if (nmerged < thickness) {
-        edgeFactor = pow(1.0 - nmerged / thickness, 2.0);
+      float nmerged = -1.0 * (merged * u_resolution1x.y);
+
+      float x_R_ratio = 1.0 - nmerged / u_refThickness;
+      float thetaI = asin(pow(x_R_ratio, 2.0));
+      float thetaT = asin(1.0 / u_refFactor * sin(thetaI));
+      float edgeFactor = -1.0 * tan(thetaT - thetaI);
+      // 内部会出现大于0的情况，这里强制normalize
+      if (nmerged >= u_refThickness) {
+        edgeFactor = 0.0;
       }
+
       if (edgeFactor <= 0.0) {
         outColor = texture(u_blurredBg, v_uv);
       } else {
-        vec4 blurredPixel = texture(
-          u_blurredBg,
-          v_uv - normal * pow(edgeFactor, 2.0) * (u_refFactor - 1.0) * 0.03 * u_dpr
-        );
-        vec4 unblurredPixel = texture(
-          u_bg,
-          v_uv - normal * pow(edgeFactor, 2.0) * (u_refFactor - 1.0) * 0.03 * u_dpr
-        );
-
-        outColor = mix(blurredPixel, unblurredPixel, edgeFactor);
+        // outColor = vec4(vec3(edgeFactor), 1.0);
+        vec4 blurredPixel = texture(u_blurredBg, v_uv - normal * edgeFactor * 0.05 * u_dpr);
+        outColor = blurredPixel;
       }
     } else {
       outColor = texture(u_bg, v_uv);
@@ -303,12 +311,17 @@ void main() {
   } else if (STEP <= 7) {
     if (merged < 0.0) {
       vec2 normal = getNormal(p1, p2, gl_FragCoord.xy);
-      float nmerged = -10.0 * (merged * u_resolution1x.y) / 2000.0;
-      float thickness = u_refThickness / 100.0;
-      float edgeFactor = 0.0;
-      if (nmerged < thickness) {
-        edgeFactor = pow(1.0 - nmerged / thickness, 2.0);
+      float nmerged = -1.0 * (merged * u_resolution1x.y);
+
+      float x_R_ratio = 1.0 - nmerged / u_refThickness;
+      float thetaI = asin(pow(x_R_ratio, 2.0));
+      float thetaT = asin(1.0 / u_refFactor * sin(thetaI));
+      float edgeFactor = -1.0 * tan(thetaT - thetaI);
+      // 内部会出现大于0的情况，这里强制normalize
+      if (nmerged >= u_refThickness) {
+        edgeFactor = 0.0;
       }
+
       if (edgeFactor <= 0.0) {
         outColor = texture(u_blurredBg, v_uv);
       } else {
