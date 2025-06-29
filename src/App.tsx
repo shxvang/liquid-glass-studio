@@ -21,15 +21,11 @@ import { Controller } from '@react-spring/web';
 
 // import { useResizeObserver } from './utils/useResizeOberver';
 import clsx from 'clsx';
-import { useControls, folder, Leva } from 'leva';
-import { computeGaussianKernelByRadius, isChineseLanguage } from './utils';
-import { LevaVectorNew } from './components/LevaVectorNew/LevaVectorNew';
-// import { LevaImageUpload } from './components/LevaImageUpload/LevaImageUpload';
-import { LevaContainer } from './components/LevaContainer/LevaContainer';
+import { computeGaussianKernelByRadius } from './utils';
 
-import bgBarH from '@/assets/bg-bar-h.png';
-import bgHalf from '@/assets/bg-half.png';
 import bgGrid from '@/assets/bg-grid.png';
+import bgBars from '@/assets/bg-bars.png';
+import bgHalf from '@/assets/bg-half.png';
 import bgTimcook from '@/assets/bg-timcook.png';
 import bgTahoeLightImg from '@/assets/bg-tahoe-light.webp';
 import bgTahoeDarkImg from '@/assets/bg-buildings.png';
@@ -37,11 +33,9 @@ import bgVideoFish from '@/assets/bg-video-fish.mp4';
 import bgVideo2 from '@/assets/bg-video-2.mp4';
 import bgVideo3 from '@/assets/bg-video-3.mp4';
 
-import languages from './utils/languages';
-import { LevaCheckButtons } from './components/LevaCheckButtons';
-
 import XIcon from '@mui/icons-material/X';
 import GitHubIcon from '@mui/icons-material/GitHub';
+import { useLevaControls } from './Controls';
 
 function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -51,241 +45,60 @@ function App() {
     dpr: 1,
   });
 
-  // detect system language
-
-  const [langName, setLangName] = useState<keyof typeof languages>(
-    isChineseLanguage() ? 'zh-CN' : 'en-US',
-  );
-  const lang = useMemo(() => {
-    return languages[langName];
-  }, [langName]);
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [controls, controlsAPI] = useControls(
-    () => ({
-      ['⚙️']: folder({
-        language: LevaCheckButtons({
-          label: lang['editor.language'],
-          selected: [langName],
-          options: !isChineseLanguage()
-            ? [
-              { value: 'en-US', label: 'English' },
-              { value: 'zh-CN', label: '简体中文' },
-            ]
-            : [
-              { value: 'zh-CN', label: '简体中文' },
-              { value: 'en-US', label: 'English' },
-            ],
-          onClick: (v) => {
-            setLangName((v as (keyof typeof languages)[])[0]);
-          },
-          singleMode: true,
-        }),
-      }),
-      refThickness: {
-        label: lang['editor.refThickness'],
-        min: 1,
-        max: 80,
-        step: 0.01,
-        value: 20,
-      },
-      refFactor: {
-        label: lang['editor.refFactor'],
-        min: 1,
-        max: 3,
-        step: 0.01,
-        value: 1.4,
-      },
-      refDispersion: {
-        label: lang['editor.refDispersion'],
-        min: 0,
-        max: 50,
-        step: 0.01,
-        value: 7,
-      },
-      refFresnelRange: {
-        label: lang['editor.refFresnelRange'],
-        min: 0,
-        max: 90,
-        step: 0.01,
-        value: 35,
-      },
-      refFresnelFactor: {
-        label: lang['editor.refFresnelFactor'],
-        min: 0,
-        max: 100,
-        step: 0.01,
-        value: 100,
-      },
-      glareAngle: {
-        label: lang['editor.glareAngle'],
-        min: -180,
-        max: 180,
-        step: 0.01,
-        value: 45,
-      },
-      blurRadius: {
-        label: lang['editor.blurRadius'],
-        min: 1,
-        max: 200,
-        step: 1,
-        value: 1,
-      },
-      blurMargin: {
-        label: lang['editor.blurMargin'],
-        min: 0,
-        max: 100,
-        step: 0.01,
-        value: 100,
-      },
-      tint: {
-        label: lang['editor.tint'],
-        value: { r: 255, b: 255, g: 255, a: 0 },
-      },
-      shadowExpand: {
-        label: lang['editor.shadowExpand'],
-        min: 2,
-        max: 100,
-        step: 0.01,
-        value: 25,
-      },
-      shadowFactor: {
-        label: lang['editor.shadowFactor'],
-        min: 0,
-        max: 100,
-        step: 0.01,
-        value: 25,
-      },
-      shadowPosition: LevaVectorNew({
-        label: lang['editor.shadowPosition'],
-        x: 0,
-        y: -10,
-        xMax: 20,
-        yMax: 20,
-      }),
-      bgType: LevaContainer({
-        label: lang['editor.bgType'],
-        contentValue: 0,
-        content: ({ value, setValue }) => (
-          <div className={styles.bgSelect}>
-            {[
-              { v: 0, media: bgBarH, loadTexture: false },
-              { v: 1, media: bgHalf, loadTexture: false },
-              { v: 2, media: bgGrid, loadTexture: false },
-              { v: 3, media: bgTahoeLightImg, loadTexture: true },
-              { v: 4, media: bgTahoeDarkImg, loadTexture: true },
-              { v: 5, media: bgTimcook, loadTexture: true },
-              { v: 6, media: bgVideoFish, loadTexture: true, type: 'video' as const },
-              { v: 7, media: bgVideo2, loadTexture: true, type: 'video' as const },
-              { v: 8, media: bgVideo3, loadTexture: true, type: 'video' as const }
-            ].map(({ v, media, loadTexture, type }) => {
-              return (
-                <div
-                  className={clsx(styles.bgSelectItem, {
-                    [styles.bgSelectItemActive]: value === v,
-                  })}
-                  style={{ backgroundImage: type === 'video' ? '' : `url(${media})` }}
-                  key={v}
-                  onClick={() => {
-                    setValue(v);
-                    if (loadTexture) {
-                      stateRef.current.bgTextureUrl = media;
-                      if (type === 'video') {
-                        stateRef.current.bgTextureType = 'video'
-                      } else {
-                        stateRef.current.bgTextureType = 'image'
-                      }
+  const { controls, lang, langName, levaGlobal } = useLevaControls({
+    containerRender: {
+      bgType: ({ value, setValue }) => {
+        return <div className={styles.bgSelect}>
+          {[
+            { v: 0, media: bgGrid, loadTexture: false },
+            { v: 1, media: bgBars, loadTexture: false },
+            { v: 2, media: bgHalf, loadTexture: false },
+            { v: 3, media: bgTahoeLightImg, loadTexture: true },
+            { v: 4, media: bgTahoeDarkImg, loadTexture: true },
+            { v: 5, media: bgTimcook, loadTexture: true },
+            { v: 6, media: bgVideoFish, loadTexture: true, type: 'video' as const },
+            { v: 7, media: bgVideo2, loadTexture: true, type: 'video' as const },
+            { v: 8, media: bgVideo3, loadTexture: true, type: 'video' as const }
+          ].map(({ v, media, loadTexture, type }) => {
+            return (
+              <div
+                className={clsx(styles.bgSelectItem, {
+                  [styles.bgSelectItemActive]: value === v,
+                })}
+                style={{ backgroundImage: type === 'video' ? '' : `url(${media})` }}
+                key={v}
+                onClick={() => {
+                  setValue(v);
+                  if (loadTexture) {
+                    stateRef.current.bgTextureUrl = media;
+                    if (type === 'video') {
+                      stateRef.current.bgTextureType = 'video'
                     } else {
-                      stateRef.current.bgTextureUrl = null;
+                      stateRef.current.bgTextureType = 'image'
                     }
-                  }}
-                >
-                  {type === 'video' ? (
-                    <video playsInline muted={true} loop className={styles.bgSelectItemVideo} ref={(ref) => {
-                      if (ref) {
-                        stateRef.current.bgVideoEls.set(v, ref);
-                      } else {
-                        stateRef.current.bgVideoEls.delete(v);
-                      }
-                    }}>
-                      <source src={media}></source>
-                    </video>
-                  ) : null}
-                </div>
-              );
-            })}
-          </div>
-        ),
-      }),
-      // customBgImage: LevaImageUpload({
-      //   label: lang['editor.customBgImage'],
-      //   file: undefined,
-      //   // disabled: renderProps.isRendering,
-      //   // alphaPatternColorA: '#bbb',
-      //   // alphaPatternColorB: '#eee',
-      // }),
-      [lang['editor.shapeSettings'] as 'shapeSettings']: folder({
-        shapeWidth: {
-          label: lang['editor.shapeWidth'],
-          min: 20,
-          max: 800,
-          step: 1,
-          value: 200,
-        },
-        shapeHeight: {
-          label: lang['editor.shapeHeight'],
-          min: 20,
-          max: 800,
-          step: 1,
-          value: 200,
-        },
-        shapeRadius: {
-          label: lang['editor.shapeRadius'],
-          min: 1,
-          max: 100,
-          step: 0.1,
-          value: 80,
-        },
-        shapeRoundness: {
-          label: lang['editor.shapeRoundness'],
-          min: 2,
-          max: 7,
-          step: 0.01,
-          value: 5,
-        },
-        mergeRate: {
-          label: lang['editor.mergeRate'],
-          min: 0,
-          max: 0.3,
-          step: 0.01,
-          value: 0.05,
-        },
-        showShape1: {
-          label: lang['editor.showShape1'],
-          value: true,
-        },
-      }),
-      [lang['editor.animationSettings'] as 'animationSettings']: folder({
-        springSizeFactor: {
-          label: lang['editor.springSizeFactor'],
-          min: 0,
-          max: 50,
-          step: 0.01,
-          value: 10,
-        },
-      }),
-      debug: folder({
-        step: {
-          label: 'Show Step',
-          value: 9,
-          min: 0,
-          max: 9,
-          step: 1,
-        },
-      })
-    }),
-    [langName],
-  );
+                  } else {
+                    stateRef.current.bgTextureUrl = null;
+                  }
+                }}
+              >
+                {type === 'video' ? (
+                  <video playsInline muted={true} loop className={styles.bgSelectItemVideo} ref={(ref) => {
+                    if (ref) {
+                      stateRef.current.bgVideoEls.set(v, ref);
+                    } else {
+                      stateRef.current.bgVideoEls.delete(v);
+                    }
+                  }}>
+                    <source src={media}></source>
+                  </video>
+                ) : null}
+              </div>
+            );
+          })}
+        </div>
+      }
+    },
+  })
 
   const stateRef = useRef<{
     canvasWindowCtrlRef: ResizeWindowCtrlRefType | null;
@@ -629,7 +442,6 @@ function App() {
           u_shadowPosition: [-controls.shadowPosition.x, -controls.shadowPosition.y],
         },
         mainPass: {
-          u_blurMargin: controls.blurMargin / 100,
           u_tint: [
             controls.tint.r / 255,
             controls.tint.g / 255,
@@ -640,7 +452,13 @@ function App() {
           u_refFactor: controls.refFactor,
           u_refDispersion: controls.refDispersion,
           u_refFresnelRange: controls.refFresnelRange,
+          u_refFresnelHardness: controls.refFresnelHardness / 100,
           u_refFresnelFactor: controls.refFresnelFactor / 100,
+          u_glareRange: controls.glareRange,
+          u_glareHardness: controls.glareHardness / 100,
+          u_glareConvergence: controls.glareConvergence / 100,
+          u_glareOppositeFactor: controls.glareOppositeFactor / 100,
+          u_glareFactor: controls.glareFactor / 100,
           STEP: controls.step,
         },
       });
@@ -657,6 +475,7 @@ function App() {
 
   return (
     <>
+      {levaGlobal}
       <header className={styles.header}>
         <div className={styles.logoWrapper}>
           <div className={styles.title}>Liquid Glass Studio</div>
@@ -697,18 +516,6 @@ function App() {
           />
         </div>
       </ResizableWindow>
-      <Leva
-        theme={{
-          sizes: {
-            rootWidth: lang['_settings'].rootWidth,
-            numberInputMinWidth: lang['_settings'].numberInputMinWidth,
-            controlWidth: lang['_settings'].controlWidth,
-          },
-          space: {
-            colGap: '5px',
-          },
-        }}
-      ></Leva>
     </>
   );
 }

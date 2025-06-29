@@ -80,11 +80,13 @@ pnpm build
 
 ## TODO
 
-- [ ] More Glare Controls (hardness / color / size etc.)
+- [x] More Glare Controls (hardness / color / size etc.)
 - [ ] Custom Background
 - [ ] Self-illumination
+- [ ] HDR illumination
+- [ ] Glass Presets
 - [ ] Control parameter import / export
-- [ ] Render Step view to show intermediate results
+- [x] Render Step view to show intermediate results
 - [ ] UI Content inside of shape
 
 ## Credits
