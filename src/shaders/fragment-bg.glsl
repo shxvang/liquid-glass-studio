@@ -129,11 +129,17 @@ void main() {
 
   if (u_bgType <= 0) {
     // chessboard
-    bgColor = vec3(1.0 - chessboard(gl_FragCoord.xy / u_dpr, 10.0, 0) / 4.0);
-  } else if (u_bgType <= 1) {
-    bgColor = vec3(halfColor(gl_FragCoord.xy / u_resolution) * 0.6 + 0.3);
-  } else if (u_bgType <= 2) {
     bgColor = vec3(1.0 - chessboard(gl_FragCoord.xy / u_dpr, 20.0, 2) / 4.0);
+  } else if (u_bgType <= 1) {
+    if (v_uv.x < 0.5 && v_uv.y > 0.5) {
+      bgColor = vec3(chessboard(gl_FragCoord.xy / u_dpr, 10.0, 0));
+    } else if (v_uv.x > 0.5 && v_uv.y < 0.5) {
+      bgColor = vec3(chessboard(gl_FragCoord.xy / u_dpr, 10.0, 1));
+    } else if (v_uv.x < 0.5 && v_uv.y < 0.5) {
+      bgColor = vec3(0.0);
+    }
+  } else if (u_bgType <= 2) {
+    bgColor = vec3(halfColor(gl_FragCoord.xy / u_resolution) * 0.6 + 0.3);
   } else if (u_bgType <= 10) {
     vec2 uv = getCoverUV(v_uv, u_resolution.x / u_resolution.y, u_bgTextureRatio);
 

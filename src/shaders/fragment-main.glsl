@@ -2,7 +2,8 @@
 
 precision highp float;
 
-// #define STEP (9.0)
+#define PI (3.14159265359)
+
 const float N_R = 1.0 - 0.02;
 const float N_G = 1.0;
 const float N_B = 1.0 + 0.02;
@@ -14,7 +15,6 @@ uniform vec2 u_resolution;
 uniform float u_dpr;
 uniform vec2 u_mouse;
 uniform vec2 u_mouseSpring;
-// uniform float u_time;
 uniform float u_mergeRate;
 uniform float u_shapeWidth;
 uniform float u_shapeHeight;
@@ -26,8 +26,13 @@ uniform float u_refFactor;
 uniform float u_refDispersion;
 uniform float u_refFresnelRange;
 uniform float u_refFresnelFactor;
+uniform float u_refFresnelHardness;
+uniform float u_glareRange;
+uniform float u_glareConvergence;
+uniform float u_glareOppositeFactor;
+uniform float u_glareFactor;
+uniform float u_glareHardness;
 uniform float u_glareAngle;
-uniform float u_blurMargin;
 uniform int u_showShape1;
 
 uniform int STEP;
@@ -54,7 +59,7 @@ vec3 sdSuperellipse(vec2 p, float r, float n) {
   vec2 oq = vec2(1.0, 0.0);
   for (int i = 1; i < num; i++) {
     float h = float(i) / float(num - 1);
-    vec2 q = vec2(pow(cos(h * 3.1415927 / 4.0), n), pow(sin(h * 3.1415927 / 4.0), n));
+    vec2 q = vec2(pow(cos(h * PI / 4.0), n), pow(sin(h * PI / 4.0), n));
     vec2 pa = p - oq;
     vec2 ba = q - oq;
     vec2 z = pa - ba * clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0);
@@ -168,16 +173,123 @@ vec3 hsv2rgb(vec3 c) {
   return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
 }
 
+// from https://github.com/Rachmanin0xFF/GLSL-Color-Functions/blob/main/color-functions.glsl
+//                          0.3127/0.3290  1.0  (1.0-0.3127-0.3290)/0.329
+const vec3 D65_WHITE = vec3(0.95045592705, 1.0, 1.08905775076);
+//                          0.3457/0.3585  1.0  (1.0-0.3457-0.3585)/0.3585
+const vec3 D50_WHITE = vec3(0.96429567643, 1.0, 0.82510460251);
+vec3 WHITE = D65_WHITE;
+const mat3 RGB_TO_XYZ_M = mat3(
+  0.4124, 0.3576, 0.1805,
+  0.2126, 0.7152, 0.0722,
+  0.0193, 0.1192, 0.9505
+);
+const mat3 XYZ_TO_XYZ50_M = mat3(
+   1.0479298208405488  ,  0.022946793341019088, -0.05019222954313557 ,
+   0.029627815688159344,  0.990434484573249   , -0.01707382502938514 ,
+  -0.009243058152591178,  0.015055144896577895,  0.7518742899580008
+);
+const mat3 XYZ_TO_RGB_M = mat3(
+   3.2406255, -1.537208 , -0.4986286,
+  -0.9689307,  1.8757561,  0.0415175,
+   0.0557101, -0.2040211,  1.0569959
+);
+const mat3 XYZ50_TO_XYZ_M = mat3(
+   0.9554734527042182  , -0.023098536874261423,  0.0632593086610217  ,
+  -0.028369706963208136,  1.0099954580058226  ,  0.021041398966943008,
+   0.012314001688319899, -0.020507696433477912,  1.3303659366080753
+);
+float UNCOMPAND_SRGB(float a) {
+  return a > 0.04045
+    ? pow((a + 0.055) / 1.055, 2.4)
+    : a / 12.92;
+}
+float COMPAND_RGB(float a) {
+  return a <= 0.0031308
+    ? 12.92 * a
+    : 1.055 * pow(a, 0.41666666666) - 0.055;
+}
+vec3 RGB_TO_XYZ(vec3 rgb) {
+  return WHITE == D65_WHITE
+    ? rgb * RGB_TO_XYZ_M
+    : rgb * RGB_TO_XYZ_M * XYZ_TO_XYZ50_M;
+}
+vec3 SRGB_TO_RGB(vec3 srgb) {
+  return vec3(UNCOMPAND_SRGB(srgb.x), UNCOMPAND_SRGB(srgb.y), UNCOMPAND_SRGB(srgb.z));
+}
+vec3 RGB_TO_SRGB(vec3 rgb) {
+  return vec3(COMPAND_RGB(rgb.x), COMPAND_RGB(rgb.y), COMPAND_RGB(rgb.z));
+}
+vec3 SRGB_TO_XYZ(vec3 srgb) {
+  return RGB_TO_XYZ(SRGB_TO_RGB(srgb));
+}
+float XYZ_TO_LAB_F(float x) {
+  //          (24/116)^3                         1/(3*(6/29)^2)     4/29
+  return x > 0.00885645167
+    ? pow(x, 0.333333333)
+    : 7.78703703704 * x + 0.13793103448;
+}
+vec3 XYZ_TO_LAB(vec3 xyz) {
+  vec3 xyz_scaled = xyz / WHITE;
+  xyz_scaled = vec3(
+    XYZ_TO_LAB_F(xyz_scaled.x),
+    XYZ_TO_LAB_F(xyz_scaled.y),
+    XYZ_TO_LAB_F(xyz_scaled.z)
+  );
+  return vec3(
+    116.0 * xyz_scaled.y - 16.0,
+    500.0 * (xyz_scaled.x - xyz_scaled.y),
+    200.0 * (xyz_scaled.y - xyz_scaled.z)
+  );
+}
+vec3 SRGB_TO_LAB(vec3 srgb) {
+  return XYZ_TO_LAB(SRGB_TO_XYZ(srgb));
+}
+vec3 LAB_TO_LCH(vec3 Lab) {
+  return vec3(Lab.x, sqrt(dot(Lab.yz, Lab.yz)), atan(Lab.z, Lab.y) * 57.2957795131);
+}
+vec3 SRGB_TO_LCH(vec3 srgb) {
+  return LAB_TO_LCH(SRGB_TO_LAB(srgb));
+}
+vec3 XYZ_TO_RGB(vec3 xyz) {
+  return WHITE == D65_WHITE
+    ? xyz * XYZ_TO_RGB_M
+    : xyz * XYZ50_TO_XYZ_M * XYZ_TO_RGB_M;
+}
+vec3 XYZ_TO_SRGB(vec3 xyz) {
+  return RGB_TO_SRGB(XYZ_TO_RGB(xyz));
+}
+float LAB_TO_XYZ_F(float x) {
+  //                                     3*(6/29)^2         4/29
+  return x > 0.206897
+    ? x * x * x
+    : 0.12841854934 * (x - 0.137931034);
+}
+vec3 LAB_TO_XYZ(vec3 Lab) {
+  float w = (Lab.x + 16.0) / 116.0;
+  return WHITE *
+  vec3(LAB_TO_XYZ_F(w + Lab.y / 500.0), LAB_TO_XYZ_F(w), LAB_TO_XYZ_F(w - Lab.z / 200.0));
+}
+vec3 LAB_TO_SRGB(vec3 lab) {
+  return XYZ_TO_SRGB(LAB_TO_XYZ(lab));
+}
+vec3 LCH_TO_LAB(vec3 LCh) {
+  return vec3(LCh.x, LCh.y * cos(LCh.z * 0.01745329251), LCh.y * sin(LCh.z * 0.01745329251));
+}
+vec3 LCH_TO_SRGB(vec3 lch) {
+  return LAB_TO_SRGB(LCH_TO_LAB(lch));
+}
+
 float vec2ToAngle(vec2 v) {
   float angle = atan(v.y, v.x);
-  if (angle < 0.0) angle += 2.0 * 3.1415926;
+  if (angle < 0.0) angle += 2.0 * PI;
   return angle;
 }
 
 vec3 vec2ToRgb(vec2 v) {
   float angle = atan(v.y, v.x);
-  if (angle < 0.0) angle += 2.0 * 3.1415926;
-  float hue = angle / (2.0 * 3.1415926);
+  if (angle < 0.0) angle += 2.0 * PI;
+  float hue = angle / (2.0 * PI);
   vec3 hsv = vec3(hue, 1.0, 1.0);
   return hsv2rgb(hsv);
 }
@@ -272,7 +384,7 @@ void main() {
         edgeFactor = 0.0;
       }
 
-      outColor = vec4(normalColor * edgeFactor, 1.0);
+      outColor = vec4(normalColor * edgeFactor * u_dpr, 1.0);
     } else {
       outColor = vec4(0.0);
     }
@@ -292,7 +404,7 @@ void main() {
       float thetaI = asin(pow(x_R_ratio, 2.0));
       float thetaT = asin(1.0 / u_refFactor * sin(thetaI));
       float edgeFactor = -1.0 * tan(thetaT - thetaI);
-      // 内部会出现大于0的情况，这里强制normalize
+      // Will have value > 0 inside of shape, force normalize here
       if (nmerged >= u_refThickness) {
         edgeFactor = 0.0;
       }
@@ -300,8 +412,18 @@ void main() {
       if (edgeFactor <= 0.0) {
         outColor = texture(u_blurredBg, v_uv);
       } else {
-        // outColor = vec4(vec3(edgeFactor), 1.0);
-        vec4 blurredPixel = texture(u_blurredBg, v_uv - normal * edgeFactor * 0.05 * u_dpr);
+        vec4 blurredPixel = texture(
+          u_blurredBg,
+          v_uv -
+            normal *
+              edgeFactor *
+              0.05 *
+              u_dpr *
+              vec2(
+                u_resolution.y / u_resolution1x.x, /* resolution independent */
+                1.0
+              )
+        );
         outColor = blurredPixel;
       }
     } else {
@@ -317,146 +439,271 @@ void main() {
       float thetaI = asin(pow(x_R_ratio, 2.0));
       float thetaT = asin(1.0 / u_refFactor * sin(thetaI));
       float edgeFactor = -1.0 * tan(thetaT - thetaI);
-      // 内部会出现大于0的情况，这里强制normalize
+      // Will have value > 0 inside of shape, force normalize here
       if (nmerged >= u_refThickness) {
         edgeFactor = 0.0;
       }
 
+      // other fresnel implements:
+      // float r0 = pow((1.0 - u_refFactor) / (1.0 + u_refFactor), 2.0);
+      // float fresnelFactor = r0 + (1.0 - r0) * pow(1.0 - cos(thetaI), 5.0);
+      // if (fresnelFactor < 0.028) {
+      //   fresnelFactor = 0.0;
+      // }
+      // fresnelFactor *= 10.0;
+
+      // float fresnelFactor =
+      //   0.5 *
+      //   (pow(sin(thetaI - thetaT) / sin(thetaI + thetaT), 2.0) +
+      //     pow(tan(thetaI - thetaT) / tan(thetaI + thetaT), 2.0));
+      // fresnelFactor = clamp(fresnelFactor, 0.0, 1.0);
+
+      float fresnelFactor = clamp(
+        pow(
+          1.0 +
+            merged * u_resolution1x.y / 1500.0 * pow(500.0 / u_refFresnelRange, 2.0) +
+            u_refFresnelHardness,
+          5.0
+        ),
+        0.0,
+        1.0
+      );
+
       if (edgeFactor <= 0.0) {
         outColor = texture(u_blurredBg, v_uv);
       } else {
-        vec4 blrredPixel = vec4(1.0);
-        blrredPixel = texture(
+        vec4 blurredPixel = texture(
           u_blurredBg,
-          v_uv - normal * pow(edgeFactor * u_dpr, 2.0) / u_resolution.y * (u_refFactor - 1.0) * 30.0
-        );
-
-        vec4 unblurredPixel = getTextureDispersion(
-          u_bg,
-          -normal * pow(edgeFactor * u_dpr, 2.0) / u_resolution.y * (u_refFactor - 1.0) * 30.0,
+          v_uv -
+            normal *
+              edgeFactor *
+              0.05 *
+              u_dpr *
+              vec2(
+                u_resolution.y / u_resolution1x.x, /* resolution independent */
+                1.0
+              ),
           u_refDispersion
         );
-
-        outColor = mix(blrredPixel, unblurredPixel, edgeFactor * pow(1.0 - u_blurMargin, 2.0));
+        outColor = mix(blurredPixel, vec4(1.0), fresnelFactor * u_refFresnelFactor * 0.7);
+        // outColor = vec4(vec3(fresnelFactor), 1.0);
       }
     } else {
       outColor = texture(u_bg, v_uv);
     }
   } else if (STEP <= 8) {
     if (merged < 0.0) {
-      vec2 normal = getNormal(p1, p2, gl_FragCoord.xy);
-      float nmerged = -10.0 * (merged * u_resolution1x.y) / 2000.0;
-      float thickness = u_refThickness / 100.0;
-      float edgeFactor = 0.0;
-      if (nmerged < thickness) {
-        edgeFactor = pow(1.0 - nmerged / thickness, 2.0);
+      float nmerged = -1.0 * (merged * u_resolution1x.y);
+
+      float x_R_ratio = 1.0 - nmerged / u_refThickness;
+      float thetaI = asin(pow(x_R_ratio, 2.0));
+      float thetaT = asin(1.0 / u_refFactor * sin(thetaI));
+      float edgeFactor = -1.0 * tan(thetaT - thetaI);
+      // Will have value > 0 inside of shape, force normalize here
+      if (nmerged >= u_refThickness) {
+        edgeFactor = 0.0;
       }
 
+      float fresnelFactor = clamp(
+        pow(
+          1.0 +
+            merged * u_resolution1x.y / 1500.0 * pow(500.0 / u_refFresnelRange, 2.0) +
+            u_refFresnelHardness,
+          5.0
+        ),
+        0.0,
+        1.0
+      );
+
+      float glareGeoFactor = clamp(
+        pow(
+          1.0 +
+            merged * u_resolution1x.y / 1500.0 * pow(500.0 / u_glareRange, 2.0) +
+            u_glareHardness,
+          5.0
+        ),
+        0.0,
+        1.0
+      );
+
       if (edgeFactor <= 0.0) {
-        // 内侧
         outColor = texture(u_blurredBg, v_uv);
-        outColor = mix(
-          outColor,
-          vec4(u_tint.r, u_tint.g, u_tint.b, u_tint.a * 0.5),
-          u_tint.a * 0.5
-        );
+        //
+        // outColor = mix(
+        //   outColor,
+        //   vec4(u_tint.r, u_tint.g, u_tint.b, u_tint.a * 0.5),
+        //   u_tint.a * 0.8
+        // );
+        // outColor.a = 1.0;
       } else {
-        // 边缘
-        vec4 blrredPixel = vec4(1.0);
-        blrredPixel = getTextureDispersion(
-          u_blurredBg,
-          -normal * pow(edgeFactor * u_dpr, 2.0) / u_resolution.y * (u_refFactor - 1.0) * 30.0,
-          u_refDispersion
-        );
+        vec2 normal = getNormal(p1, p2, gl_FragCoord.xy);
 
-        vec4 unblurredPixel = getTextureDispersion(
-          u_bg,
-          -normal * pow(edgeFactor * u_dpr, 2.0) / u_resolution.y * (u_refFactor - 1.0) * 30.0,
-          u_refDispersion
-        );
-
-        outColor = mix(blrredPixel, unblurredPixel, edgeFactor * pow(1.0 - u_blurMargin, 2.0));
-        // 混合颜色
-        outColor = mix(
-          outColor,
-          vec4(u_tint.r, u_tint.g, u_tint.b, u_tint.a * 0.5),
-          u_tint.a * 0.5
-        );
-
-        float fresnelFactor =
-          pow(edgeFactor, (100.0 - u_refFresnelRange) * thickness) * u_refFresnelFactor;
-
-        vec4 fresnelColor = outColor;
-        if (fresnelFactor > 0.0) {
-          fresnelColor = texture(
-            u_bg,
-            v_uv + normal * pow(fresnelFactor, 2.0) / u_resolution.y * 120.0
-          );
-          fresnelColor = mix(fresnelColor, vec4(1.0), fresnelFactor);
+        float glareAngle = (vec2ToAngle(normalize(normal)) - PI / 4.0 + u_glareAngle) * 2.0;
+        int glareFarside = 0;
+        if (
+          glareAngle > PI * (2.0 - 0.5) && glareAngle < PI * (4.0 - 0.5) ||
+          glareAngle < PI * (0.0 - 0.5)
+        ) {
+          glareFarside = 1;
         }
 
-        outColor = mix(fresnelColor, outColor, 1.0 - fresnelFactor);
+        float glareAngleFactor =
+          (0.5 + sin(glareAngle) * 0.5) * 1.0 * (glareFarside == 1 ? 0.8 : 1.2) * u_glareFactor;
+        glareAngleFactor = clamp(pow(glareAngleFactor, 0.3 + u_glareConvergence * 1.5), 0.0, 1.0);
+
+        vec4 blurredPixel = texture(
+          u_blurredBg,
+          v_uv -
+            normal *
+              edgeFactor *
+              0.05 *
+              u_dpr *
+              vec2(
+                u_resolution.y / u_resolution1x.x, /* resolution independent */
+                1.0
+              ),
+          u_refDispersion
+        );
+        //
+        // outColor = mix(
+        //   blurredPixel,
+        //   vec4(u_tint.r, u_tint.g, u_tint.b, u_tint.a * 0.5),
+        //   u_tint.a * 0.8
+        // );
+        // outColor.a = 1.0;
+        // outColor = mix(outColor, vec4(1.0), fresnelFactor * u_refFresnelFactor * 0.7);
+        outColor = blurredPixel;
+
+        vec3 tintLCH = SRGB_TO_LCH(
+          mix(vec3(1.0), vec3(u_tint.r, u_tint.g, u_tint.b), u_tint.a * 0.5)
+        );
+        tintLCH.x += 20.0 * fresnelFactor * u_refFresnelFactor;
+        tintLCH.x = clamp(tintLCH.x, 0.0, 100.0);
+
+        outColor = mix(
+          outColor,
+          // vec4(
+          // LCH_TO_SRGB(tintLCH),
+          // u_tint.a * 0.5
+          // ),
+          vec4(1.0),
+          fresnelFactor * u_refFresnelFactor * 0.7
+        );
+
+        // ------
+        outColor = mix(
+          outColor,
+          // vec4(
+          //   LCH_TO_SRGB(tintLCH),
+          //   u_tint.a * 0.5
+          // ),
+          vec4(1.0),
+          glareAngleFactor * glareGeoFactor
+        );
+        // outColor = vec4(vec3(glareAngleFactor * glareGeoFactor), 1.0);
       }
     } else {
       outColor = texture(u_bg, v_uv);
     }
   } else if (STEP <= 9) {
     if (merged < 0.005) {
-      vec2 normal = getNormal(p1, p2, gl_FragCoord.xy);
-      float glareFactor =
-        0.5 +
-        sin((vec2ToAngle(normalize(normal)) + u_glareAngle - 3.14159265359 / 4.0) * 2.0) * 0.5;
-      float nmerged = -10.0 * (merged * u_resolution1x.y) / 2000.0;
-      float thickness = u_refThickness / 100.0;
-      float edgeFactor = 0.0;
-      if (nmerged < thickness) {
-        edgeFactor = pow(1.0 - nmerged / thickness, 2.0);
+      float nmerged = -1.0 * (merged * u_resolution1x.y);
+
+      // calculate refraction edge factor:
+      float x_R_ratio = 1.0 - nmerged / u_refThickness;
+      float thetaI = asin(pow(x_R_ratio, 2.0));
+      float thetaT = asin(1.0 / u_refFactor * sin(thetaI));
+      float edgeFactor = -1.0 * tan(thetaT - thetaI);
+      // Will have value > 0 inside of shape, force normalize here
+      if (nmerged >= u_refThickness) {
+        edgeFactor = 0.0;
       }
 
       if (edgeFactor <= 0.0) {
-        // 内侧
         outColor = texture(u_blurredBg, v_uv);
-        outColor = mix(
-          outColor,
-          vec4(u_tint.r, u_tint.g, u_tint.b, u_tint.a * 0.5),
-          u_tint.a * 0.5
-        );
-        outColor.a = 1.0;
+        outColor = mix(outColor, vec4(u_tint.r, u_tint.g, u_tint.b, 1.0), u_tint.a * 0.8);
       } else {
-        // 边缘
-        vec4 blrredPixel = vec4(1.0);
-        blrredPixel = getTextureDispersion(
+        // calculate parameters
+        vec2 normal = getNormal(p1, p2, gl_FragCoord.xy);
+        vec4 blurredPixel = getTextureDispersion(
           u_blurredBg,
-          -normal * pow(edgeFactor, 2.0) * (u_refFactor - 1.0) * 0.03 * u_dpr,
+          -normal *
+            edgeFactor *
+            0.05 *
+            u_dpr *
+            vec2(
+              u_resolution.y / (u_resolution1x.x * u_dpr), /* resolution independent */
+              1.0
+            ),
           u_refDispersion
         );
 
-        vec4 unblurredPixel = getTextureDispersion(
-          u_bg,
-          -normal * pow(edgeFactor, 2.0) * (u_refFactor - 1.0) * 0.03 * u_dpr,
-          u_refDispersion
+        // basic tint
+        outColor = mix(blurredPixel, vec4(u_tint.r, u_tint.g, u_tint.b, 1.0), u_tint.a * 0.8);
+
+        // add fresnel
+        float fresnelFactor = clamp(
+          pow(
+            1.0 +
+              merged * u_resolution1x.y / 1500.0 * pow(500.0 / u_refFresnelRange, 2.0) +
+              u_refFresnelHardness,
+            5.0
+          ),
+          0.0,
+          1.0
         );
 
-        outColor = mix(blrredPixel, unblurredPixel, edgeFactor * pow(1.0 - u_blurMargin, 2.0));
-        // 混合颜色
+        vec3 fresnelTintLCH = SRGB_TO_LCH(
+          mix(vec3(1.0), vec3(u_tint.r, u_tint.g, u_tint.b), u_tint.a * 0.5)
+        );
+        fresnelTintLCH.x += 20.0 * fresnelFactor * u_refFresnelFactor;
+        fresnelTintLCH.x = clamp(fresnelTintLCH.x, 0.0, 100.0);
+
         outColor = mix(
           outColor,
-          vec4(u_tint.r, u_tint.g, u_tint.b, u_tint.a * 0.5),
-          u_tint.a * 0.5
+          vec4(LCH_TO_SRGB(fresnelTintLCH), 1.0),
+          fresnelFactor * u_refFresnelFactor * 0.7
         );
 
-        float fresnelFactor =
-          pow(edgeFactor, (100.0 - u_refFresnelRange) * thickness) * u_refFresnelFactor;
+        // add glare
+        float glareGeoFactor = clamp(
+          pow(
+            1.0 +
+              merged * u_resolution1x.y / 1500.0 * pow(500.0 / u_glareRange, 2.0) +
+              u_glareHardness,
+            5.0
+          ),
+          0.0,
+          1.0
+        );
 
-        vec4 fresnelColor = outColor;
-        if (fresnelFactor > 0.0) {
-          fresnelColor = texture(u_bg, v_uv + normal * pow(fresnelFactor, 2.0) * 1.0 * u_dpr);
-          fresnelColor = mix(fresnelColor, vec4(1.0), fresnelFactor);
+        float glareAngle = (vec2ToAngle(normalize(normal)) - PI / 4.0 + u_glareAngle) * 2.0;
+        int glareFarside = 0;
+        if (
+          glareAngle > PI * (2.0 - 0.5) && glareAngle < PI * (4.0 - 0.5) ||
+          glareAngle < PI * (0.0 - 0.5)
+        ) {
+          glareFarside = 1;
         }
+        float glareAngleFactor =
+          (0.5 + sin(glareAngle) * 0.5) *
+          (glareFarside == 1
+            ? 1.2 * u_glareOppositeFactor
+            : 1.2) *
+          u_glareFactor;
+        glareAngleFactor = clamp(pow(glareAngleFactor, 0.1 + u_glareConvergence * 2.0), 0.0, 1.0);
 
-        outColor =
-          mix(fresnelColor, outColor, 1.0 - fresnelFactor) +
-          vec4(vec3((glareFactor - 0.3) * fresnelFactor), 1.0);
+        vec3 glareTintLCH = SRGB_TO_LCH(
+          mix(vec3(1.0), vec3(u_tint.r, u_tint.g, u_tint.b), u_tint.a * 0.5)
+        );
+        glareTintLCH.x += 20.0 * glareAngleFactor * glareGeoFactor;
+        glareTintLCH.x = clamp(glareTintLCH.x, 0.0, 100.0);
+
+        outColor = mix(
+          outColor,
+          vec4(LCH_TO_SRGB(glareTintLCH), 1.0),
+          glareAngleFactor * glareGeoFactor
+        );
       }
     } else {
       outColor = texture(u_bg, v_uv);

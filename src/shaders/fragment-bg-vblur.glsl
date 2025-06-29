@@ -21,8 +21,6 @@ void main() {
     vec2 offset = vec2(float(i)) * texelSize;
     color += texture(u_prevPassTexture, v_uv + vec2(offset.x, 0.0)) * w;
     color += texture(u_prevPassTexture, v_uv - vec2(offset.x, 0.0)) * w;
-    // color += texture(u_prevPassTexture, v_uv + vec2(0.0, offset.y)) * w;
-    // color += texture(u_prevPassTexture, v_uv - vec2(0.0, offset.y)) * w;
   }
   fragColor = color;
 }

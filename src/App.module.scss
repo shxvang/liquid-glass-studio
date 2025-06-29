@@ -15,8 +15,6 @@
   align-items: center;
   font-family: sans-serif;
 
-  display: none;
-
   .logoWrapper {
     display: flex;
     flex-direction: row;
@@ -90,3 +88,29 @@
   height: 100%;
   object-fit: cover;
 }
+
+:global(#root > div[class^='leva-']) {
+  background-color: rgba(0, 11, 36, 0.6);
+  & > div:last-child {
+    background-color: rgba(0, 9, 30, 0.698);
+  }
+}
+:global(div[data-leva-folder='1']) {
+  & > div:first-child {
+    & > svg + div {
+      display: none;
+    }
+
+    &::after {
+      content: var(--i18n-name);
+      display: inline;
+    }
+  }
+
+  & > div:last-child {
+    background-color: transparent;
+  }
+}
+
+// ctrlEl.dataset.i18nName =
+//     lang[`editor.${titleStr}` as keyof Omit<typeof lang, '_settings'>] ?? titleStr;
