@@ -8,7 +8,12 @@ import {
   type CSSProperties,
 } from 'react';
 import styles from './App.module.scss';
-import { createEmptyTexture, loadTextureFromURL, MultiPassRenderer, updateVideoTexture } from './utils/GLUtils';
+import {
+  createEmptyTexture,
+  loadTextureFromURL,
+  MultiPassRenderer,
+  updateVideoTexture,
+} from './utils/GLUtils';
 import { ResizableWindow } from './components/ResizableWindow';
 import type { ResizeWindowCtrlRefType } from './components/ResizableWindow/ResizableWindow';
 
@@ -21,20 +26,23 @@ import { Controller } from '@react-spring/web';
 
 // import { useResizeObserver } from './utils/useResizeOberver';
 import clsx from 'clsx';
-import { computeGaussianKernelByRadius } from './utils';
+import { capitalize, computeGaussianKernelByRadius } from './utils';
 
 import bgGrid from '@/assets/bg-grid.png';
 import bgBars from '@/assets/bg-bars.png';
 import bgHalf from '@/assets/bg-half.png';
 import bgTimcook from '@/assets/bg-timcook.png';
 import bgTahoeLightImg from '@/assets/bg-tahoe-light.webp';
-import bgTahoeDarkImg from '@/assets/bg-buildings.png';
+import bgText from '@/assets/bg-text.jpg';
+import bgBuildings from '@/assets/bg-buildings.png';
 import bgVideoFish from '@/assets/bg-video-fish.mp4';
 import bgVideo2 from '@/assets/bg-video-2.mp4';
 import bgVideo3 from '@/assets/bg-video-3.mp4';
 
 import XIcon from '@mui/icons-material/X';
 import GitHubIcon from '@mui/icons-material/GitHub';
+import PlayCircleOutlinedIcon from '@mui/icons-material/PlayCircleOutlined';
+import FileUploadOutlinedIcon from '@mui/icons-material/FileUploadOutlined';
 import { useLevaControls } from './Controls';
 
 function App() {
@@ -47,58 +55,145 @@ function App() {
 
   const { controls, lang, langName, levaGlobal } = useLevaControls({
     containerRender: {
+      /* eslint-disable react-hooks/rules-of-hooks */
       bgType: ({ value, setValue }) => {
-        return <div className={styles.bgSelect}>
-          {[
-            { v: 0, media: bgGrid, loadTexture: false },
-            { v: 1, media: bgBars, loadTexture: false },
-            { v: 2, media: bgHalf, loadTexture: false },
-            { v: 3, media: bgTahoeLightImg, loadTexture: true },
-            { v: 4, media: bgTahoeDarkImg, loadTexture: true },
-            { v: 5, media: bgTimcook, loadTexture: true },
-            { v: 6, media: bgVideoFish, loadTexture: true, type: 'video' as const },
-            { v: 7, media: bgVideo2, loadTexture: true, type: 'video' as const },
-            { v: 8, media: bgVideo3, loadTexture: true, type: 'video' as const }
-          ].map(({ v, media, loadTexture, type }) => {
-            return (
-              <div
-                className={clsx(styles.bgSelectItem, {
-                  [styles.bgSelectItemActive]: value === v,
-                })}
-                style={{ backgroundImage: type === 'video' ? '' : `url(${media})` }}
-                key={v}
-                onClick={() => {
-                  setValue(v);
-                  if (loadTexture) {
-                    stateRef.current.bgTextureUrl = media;
-                    if (type === 'video') {
-                      stateRef.current.bgTextureType = 'video'
-                    } else {
-                      stateRef.current.bgTextureType = 'image'
+        const [customFileType, setCustomFileType] = useState<null | 'image' | 'video'>(null);
+        const [customFile, setCustomFile] = useState<null | File>(null);
+        const [customFileUrl, setCustomFileUrl] = useState<null | string>(null);
+        const fileInputRef = useRef<HTMLInputElement>(null);
+
+        return (
+          <div className={styles.bgSelect}>
+            {[
+              { v: 10, media: '', loadTexture: true, type: 'custom' as const },
+              { v: 0, media: bgGrid, loadTexture: false },
+              { v: 1, media: bgBars, loadTexture: false },
+              { v: 2, media: bgHalf, loadTexture: false },
+              { v: 3, media: bgTahoeLightImg, loadTexture: true },
+              { v: 4, media: bgBuildings, loadTexture: true },
+              { v: 5, media: bgText, loadTexture: true },
+              { v: 6, media: bgTimcook, loadTexture: true },
+              { v: 7, media: bgVideoFish, loadTexture: true, type: 'video' as const },
+              { v: 8, media: bgVideo2, loadTexture: true, type: 'video' as const },
+              { v: 9, media: bgVideo3, loadTexture: true, type: 'video' as const },
+            ].map(({ v, media, loadTexture, type }) => {
+              const mediaType = type === 'custom' ? customFileType : (type ?? 'image');
+              const mediaUrl = type === 'custom' ? customFileUrl : media;
+              return (
+                <div
+                  className={clsx(
+                    styles.bgSelectItem,
+                    styles[`bgSelectItemType${capitalize(type ?? 'image')}`],
+                    {
+                      [styles.bgSelectItemActive]: value === v,
+                    },
+                  )}
+                  // style={{ backgroundImage: !type ? `url(${media})` : '' }}
+                  key={v}
+                  onClick={() => {
+                    if (type === 'custom') {
+                      if (!mediaUrl) {
+                        fileInputRef.current?.click();
+                      } else if (value === v) {
+                        fileInputRef.current?.click();
+                      }
                     }
-                  } else {
-                    stateRef.current.bgTextureUrl = null;
-                  }
-                }}
-              >
-                {type === 'video' ? (
-                  <video playsInline muted={true} loop className={styles.bgSelectItemVideo} ref={(ref) => {
-                    if (ref) {
-                      stateRef.current.bgVideoEls.set(v, ref);
+                    setValue(v);
+                    if (loadTexture && mediaUrl) {
+                      stateRef.current.bgTextureUrl = mediaUrl;
+                      if (mediaType === 'video') {
+                        stateRef.current.bgTextureType = 'video';
+                      } else {
+                        stateRef.current.bgTextureType = 'image';
+                      }
                     } else {
-                      stateRef.current.bgVideoEls.delete(v);
+                      stateRef.current.bgTextureUrl = null;
+                      stateRef.current.bgTextureReady = false;
                     }
-                  }}>
-                    <source src={media}></source>
-                  </video>
-                ) : null}
-              </div>
-            );
-          })}
-        </div>
-      }
+                  }}
+                >
+                  {mediaUrl &&
+                    (mediaType === 'video' ? (
+                      <video
+                        playsInline
+                        muted={true}
+                        loop
+                        className={styles.bgSelectItemVideo}
+                        ref={(ref) => {
+                          if (ref) {
+                            stateRef.current.bgVideoEls.set(v, ref);
+                          } else {
+                            stateRef.current.bgVideoEls.delete(v);
+                          }
+                        }}
+                      >
+                        <source src={mediaUrl}></source>
+                      </video>
+                    ) : mediaType === 'image' ? (
+                      <img src={mediaUrl} className={styles.bgSelectItemImg} />
+                    ) : null)}
+                  {type === 'custom' ? (
+                    <>
+                      <input
+                        type="file"
+                        accept="image/*,video/*"
+                        ref={fileInputRef}
+                        multiple={false}
+                        onChange={(e) => {
+                          if (!e.target.files?.[0]) {
+                            return;
+                          }
+                          setCustomFile(e.target.files[0]);
+                          if (customFileUrl) {
+                            URL.revokeObjectURL(customFileUrl);
+                          }
+                          const newUrl = URL.createObjectURL(e.target.files[0]);
+                          setCustomFileUrl(newUrl);
+                          const fileType = e.target.files[0].type.startsWith('image/')
+                            ? 'image'
+                            : 'video';
+                          setCustomFileType(fileType);
+                          setValue(v);
+                          stateRef.current.bgTextureUrl = newUrl;
+                          if (fileType === 'video') {
+                            stateRef.current.bgTextureType = 'video';
+                          } else {
+                            stateRef.current.bgTextureType = 'image';
+                          }
+                        }}
+                      ></input>
+                      <FileUploadOutlinedIcon />
+                    </>
+                  ) : null}
+                  <div
+                    className={clsx(
+                      styles.bgSelectItemOverlay,
+                      styles[`bgSelectItemOverlay${capitalize(type ?? 'image')}`],
+                    )}
+                  >
+                    {mediaType === 'video' && (
+                      <PlayCircleOutlinedIcon
+                        className={styles.bgSelectItemVideoIcon}
+                        style={{
+                          opacity: value !== v ? 1 : 0,
+                        }}
+                      />
+                    )}
+                    {type === 'custom' && (
+                      <div className={styles.bgSelectItemCustomIcon}>
+                        <FileUploadOutlinedIcon />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        );
+      },
+      /* eslint-enable react-hooks/rules-of-hooks */
     },
-  })
+  });
 
   const stateRef = useRef<{
     canvasWindowCtrlRef: ResizeWindowCtrlRefType | null;
@@ -121,6 +216,7 @@ function App() {
     bgTexture: WebGLTexture | null;
     bgTextureRatio: number;
     bgTextureType: 'image' | 'video' | null;
+    bgTextureReady: boolean;
     bgVideoEls: Map<number, HTMLVideoElement>;
     langName: typeof langName;
   }>({
@@ -183,9 +279,10 @@ function App() {
     bgTextureUrl: null,
     bgTexture: null,
     bgTextureRatio: 1,
-    langName: langName,
     bgTextureType: null,
+    bgTextureReady: false,
     bgVideoEls: new Map(),
+    langName: langName,
   });
   stateRef.current.canvasInfo = canvasInfo;
   stateRef.current.controls = controls;
@@ -359,13 +456,19 @@ function App() {
           }
         } else {
           if (stateRef.current.bgTextureType === 'image') {
+            const rafId = requestAnimationFrame(() => {
+              stateRef.current.bgTextureReady = false;
+            });
             loadTextureFromURL(gl, textureUrl).then(({ texture, ratio }) => {
               if (stateRef.current.bgTextureUrl === textureUrl) {
+                cancelAnimationFrame(rafId);
                 stateRef.current.bgTexture = texture;
                 stateRef.current.bgTextureRatio = ratio;
+                stateRef.current.bgTextureReady = true;
               }
             });
           } else if (stateRef.current.bgTextureType === 'video') {
+            stateRef.current.bgTextureReady = false;
             stateRef.current.bgTexture = createEmptyTexture(gl);
             stateRef.current.bgVideoEls.get(stateRef.current.controls.bgType)?.play();
           }
@@ -379,14 +482,11 @@ function App() {
       if (stateRef.current.bgTextureType === 'video') {
         const videoEl = stateRef.current.bgVideoEls.get(stateRef.current.controls.bgType);
         if (stateRef.current.bgTexture && videoEl) {
-          const info = updateVideoTexture(
-            gl,
-            stateRef.current.bgTexture,
-            videoEl,
-          );
+          const info = updateVideoTexture(gl, stateRef.current.bgTexture, videoEl);
 
           if (info) {
             stateRef.current.bgTextureRatio = info.ratio;
+            stateRef.current.bgTextureReady = true;
           }
         }
       }
@@ -437,6 +537,7 @@ function App() {
             stateRef.current.bgTextureUrl && stateRef.current.bgTexture
               ? stateRef.current.bgTextureRatio
               : undefined,
+          u_bgTextureReady: stateRef.current.bgTextureReady ? 1 : 0,
           u_shadowExpand: controls.shadowExpand,
           u_shadowFactor: controls.shadowFactor / 100,
           u_shadowPosition: [-controls.shadowPosition.x, -controls.shadowPosition.y],
@@ -482,9 +583,23 @@ function App() {
           <div className={styles.subtitle}>{lang['ui.subtitle']}</div>
         </div>
         <div className={styles.content}>
-          <span>by <a>iyinchao</a></span>
-          <a href="https://github.com/iyinchao/liquid-glass-studio" target="_blank" className={styles.button}><GitHubIcon /></a>
-          <a href="https://x.com/charles_yin/status/1936338569267986605" target="_blank" className={styles.button}><XIcon></XIcon></a>
+          <span>
+            by <a>iyinchao</a>
+          </span>
+          <a
+            href="https://github.com/iyinchao/liquid-glass-studio"
+            target="_blank"
+            className={styles.button}
+          >
+            <GitHubIcon />
+          </a>
+          <a
+            href="https://x.com/charles_yin/status/1936338569267986605"
+            target="_blank"
+            className={styles.button}
+          >
+            <XIcon></XIcon>
+          </a>
         </div>
       </header>
       <ResizableWindow

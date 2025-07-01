@@ -81,7 +81,7 @@ pnpm build
 ## TODO
 
 - [x] More Glare Controls (hardness / color / size etc.)
-- [ ] Custom Background
+- [x] Custom Background
 - [ ] Self-illumination
 - [ ] HDR illumination
 - [ ] Glass Presets

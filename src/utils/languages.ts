@@ -1,9 +1,9 @@
 export default {
   ['zh-CN']: {
     '_settings': {
-      rootWidth: '330px',
+      rootWidth: '350px',
       numberInputMinWidth: '42px',
-      controlWidth: '195px',
+      controlWidth: '215px',
     },
     'ui.subtitle': '基于WebGL2的液态玻璃效果模拟工具',
     'editor.basicSettings': '基础设置',
@@ -26,8 +26,7 @@ export default {
     'editor.shadowExpand': '阴影扩散',
     'editor.shadowFactor': '阴影强度',
     'editor.shadowPosition': '阴影位置',
-    'editor.bgType': '背景类型',
-    'editor.customBgImage': '自定义背景',
+    'editor.bgType': '背景',
     'editor.shapeSettings': '形状设置',
     'editor.shapeWidth': '宽',
     'editor.shapeHeight': '高',
@@ -41,9 +40,9 @@ export default {
   },
   ['en-US']: {
     '_settings': {
-      rootWidth: '380px',
+      rootWidth: '400px',
       numberInputMinWidth: '42px',
-      controlWidth: '195px',
+      controlWidth: '215px',
     },
     'ui.subtitle': 'Liquid Glass Effect Simulation Tool based on WebGL2',
     'editor.basicSettings': 'Basic Settings',
@@ -67,7 +66,6 @@ export default {
     'editor.shadowFactor': 'Shadow Intensity',
     'editor.shadowPosition': 'Shadow Position',
     'editor.bgType': 'Background',
-    'editor.customBgImage': 'Custom Background',
     'editor.shapeSettings': 'Shape Settings',
     'editor.shapeWidth': 'Width',
     'editor.shapeHeight': 'Height',

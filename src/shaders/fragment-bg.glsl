@@ -21,6 +21,7 @@ uniform vec2 u_shadowPosition;
 uniform int u_bgType;
 uniform sampler2D u_bgTexture;
 uniform float u_bgTextureRatio;
+uniform int u_bgTextureReady;
 uniform int u_showShape1;
 
 float chessboard(vec2 uv, float size, int mode) {
@@ -141,10 +142,15 @@ void main() {
   } else if (u_bgType <= 2) {
     bgColor = vec3(halfColor(gl_FragCoord.xy / u_resolution) * 0.6 + 0.3);
   } else if (u_bgType <= 10) {
-    vec2 uv = getCoverUV(v_uv, u_resolution.x / u_resolution.y, u_bgTextureRatio);
+    if (u_bgTextureReady != 1) {
+      // chessboard
+      bgColor = vec3(1.0 - chessboard(gl_FragCoord.xy / u_dpr, 20.0, 2) / 4.0);
+    } else {
+      vec2 uv = getCoverUV(v_uv, u_resolution.x / u_resolution.y, u_bgTextureRatio);
 
-    // 不需要判断越界，CLAMP_TO_EDGE 会自动处理
-    bgColor = texture(u_bgTexture, uv).rgb;
+      // 不需要判断越界，CLAMP_TO_EDGE 会自动处理
+      bgColor = texture(u_bgTexture, uv).rgb;
+    }
   }
 
   // float chessboardBg = 1.0 - chessboard(gl_FragCoord.xy / u_dpr, 10.0) / 4.0;
