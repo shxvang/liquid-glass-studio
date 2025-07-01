@@ -344,7 +344,9 @@ void main() {
       vec2 normal = getNormal(p1, p2, gl_FragCoord.xy);
       vec3 normalColor = vec2ToRgb(normal);
 
-      outColor = vec4(normalColor, 1.0);
+      float l = length(normal);
+
+      outColor = vec4(normalColor, l);
     } else {
       outColor = vec4(vec3(0.8), 0.0);
     }

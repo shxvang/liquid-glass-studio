@@ -219,6 +219,8 @@ export const useLevaControls = ({
           step: 0.01,
           value: 10,
         },
+      }, {
+        collapsed: true
       }),
       ['debugSettings']: folder({
         step: {
@@ -228,6 +230,8 @@ export const useLevaControls = ({
           max: 9,
           step: 1,
         },
+      }, {
+        collapsed: true
       }),
     }),
     [langName],

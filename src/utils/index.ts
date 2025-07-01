@@ -13,3 +13,7 @@ export function computeGaussianKernelByRadius(radius: number) {
 export function isChineseLanguage() {
   return navigator.language.startsWith('zh');
 }
+
+export function capitalize(str: string) {
+  return `${str.charAt(0).toUpperCase()}${str.slice(1)}`;
+}
