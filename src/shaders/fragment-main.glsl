@@ -386,7 +386,7 @@ void main() {
         edgeFactor = 0.0;
       }
 
-      outColor = vec4(normalColor * edgeFactor * u_dpr, 1.0);
+      outColor = vec4(normalColor * edgeFactor * u_dpr * length(normal), 1.0);
     } else {
       outColor = vec4(0.0);
     }
@@ -664,7 +664,7 @@ void main() {
         outColor = mix(
           outColor,
           vec4(LCH_TO_SRGB(fresnelTintLCH), 1.0),
-          fresnelFactor * u_refFresnelFactor * 0.7
+          fresnelFactor * u_refFresnelFactor * 0.7 * length(normal)
         );
 
         // add glare
@@ -705,7 +705,7 @@ void main() {
         outColor = mix(
           outColor,
           vec4(LCH_TO_SRGB(glareTintLCH), 1.0),
-          glareAngleFactor * glareGeoFactor
+          glareAngleFactor * glareGeoFactor * length(normal)
         );
       }
     } else {
