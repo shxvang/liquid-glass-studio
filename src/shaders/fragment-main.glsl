@@ -696,10 +696,11 @@ void main() {
         glareAngleFactor = clamp(pow(glareAngleFactor, 0.1 + u_glareConvergence * 2.0), 0.0, 1.0);
 
         vec3 glareTintLCH = SRGB_TO_LCH(
-          mix(vec3(1.0), vec3(u_tint.r, u_tint.g, u_tint.b), u_tint.a * 0.5)
+          mix(blurredPixel.rgb, vec3(u_tint.r, u_tint.g, u_tint.b), u_tint.a * 0.5)
         );
-        glareTintLCH.x += 20.0 * glareAngleFactor * glareGeoFactor;
-        glareTintLCH.x = clamp(glareTintLCH.x, 0.0, 100.0);
+        glareTintLCH.x += 150.0 * glareAngleFactor * glareGeoFactor;
+        glareTintLCH.y += 30.0 * glareAngleFactor * glareGeoFactor;
+        glareTintLCH.x = clamp(glareTintLCH.x, 0.0, 120.0);
 
         outColor = mix(
           outColor,

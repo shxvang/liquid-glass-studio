@@ -124,7 +124,7 @@ export const useLevaControls = ({
         min: -180,
         max: 180,
         step: 0.01,
-        value: 45,
+        value: -45,
       },
       blurRadius: {
         label: lang['editor.blurRadius'],
