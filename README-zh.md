@@ -6,18 +6,18 @@
 
 Apple Liquid Glass UI 在 Web 平台上的高保真还原，基于 WebGL2 和 Shader实现。力求涵盖尽可能多的 Liquid Glass 特性，并提供细致的参数控制。
 
-<p align="center">
-<img src="./.github/assets/title-video.gif" width="480" >
-</p>
-
 ## 在线演示
 
 https://liquid-glass-studio.vercel.app/
+
+中国大陆用户请访问:  
+https://liquid-glass.iyinchao.cn/
 
 ## 截图预览
 
 <table align="center">
   <tr>
+    <td><img src="./.github/assets/title-video.gif" width="240" ></td>
     <td><img src="./.github/assets/screen-shot-1.png" width="240" /></td>
     <td><img src="./.github/assets/screen-shot-2.png" width="240" /></td>
   </tr>
