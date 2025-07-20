@@ -141,7 +141,7 @@ void main() {
     }
   } else if (u_bgType <= 2) {
     bgColor = vec3(halfColor(gl_FragCoord.xy / u_resolution) * 0.6 + 0.3);
-  } else if (u_bgType <= 10) {
+  } else if (u_bgType <= 11) {
     if (u_bgTextureReady != 1) {
       // chessboard
       bgColor = vec3(1.0 - chessboard(gl_FragCoord.xy / u_dpr, 20.0, 2) / 4.0);

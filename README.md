@@ -1,8 +1,10 @@
 # 🔮 Liquid Glass Studio
 
+![frontPhoto](./.github/assets/title.png)
+
 [English](README.md) | [简体中文](README-zh.md)
 
-The ultimate Apple Liquid Glass UI replica for the Web, powered by WebGL2 and shaders. Includes most Liquid Glass features with fine-grained controls for detailed customization.
+The Ultimate Web Recreation of Apple’s Liquid Glass UI, powered by WebGL2 and shaders. Includes most Liquid Glass features with fine-grained controls for detailed customization.
 
 <p align="center">
 <img src="./.github/assets/title-video.gif" width="480" >

@@ -1,8 +1,10 @@
 # 🔮 Liquid Glass Studio
 
+![frontPhoto](./.github/assets/title.png)
+
 [English](README.md) | [简体中文](README-zh.md)
 
-Apple Liquid Glass UI 在 Web 平台上的高保真复刻，基于 WebGL2 和 Shader实现。力求涵盖尽可能多的 Liquid Glass 特性，并提供细致的参数控制。
+Apple Liquid Glass UI 在 Web 平台上的高保真还原，基于 WebGL2 和 Shader实现。力求涵盖尽可能多的 Liquid Glass 特性，并提供细致的参数控制。
 
 <p align="center">
 <img src="./.github/assets/title-video.gif" width="480" >

@@ -32,6 +32,7 @@ import bgGrid from '@/assets/bg-grid.png';
 import bgBars from '@/assets/bg-bars.png';
 import bgHalf from '@/assets/bg-half.png';
 import bgTimcook from '@/assets/bg-timcook.png';
+import bgUI from '@/assets/bg-ui.svg';
 import bgTahoeLightImg from '@/assets/bg-tahoe-light.webp';
 import bgText from '@/assets/bg-text.jpg';
 import bgBuildings from '@/assets/bg-buildings.png';
@@ -65,7 +66,7 @@ function App() {
         return (
           <div className={styles.bgSelect}>
             {[
-              { v: 10, media: '', loadTexture: true, type: 'custom' as const },
+              { v: 11, media: '', loadTexture: true, type: 'custom' as const },
               { v: 0, media: bgGrid, loadTexture: false },
               { v: 1, media: bgBars, loadTexture: false },
               { v: 2, media: bgHalf, loadTexture: false },
@@ -73,9 +74,10 @@ function App() {
               { v: 4, media: bgBuildings, loadTexture: true },
               { v: 5, media: bgText, loadTexture: true },
               { v: 6, media: bgTimcook, loadTexture: true },
-              { v: 7, media: bgVideoFish, loadTexture: true, type: 'video' as const },
-              { v: 8, media: bgVideo2, loadTexture: true, type: 'video' as const },
-              { v: 9, media: bgVideo3, loadTexture: true, type: 'video' as const },
+              { v: 7, media: bgUI, loadTexture: true },
+              { v: 8, media: bgVideoFish, loadTexture: true, type: 'video' as const },
+              { v: 9, media: bgVideo2, loadTexture: true, type: 'video' as const },
+              { v: 10, media: bgVideo3, loadTexture: true, type: 'video' as const },
             ].map(({ v, media, loadTexture, type }) => {
               const mediaType = type === 'custom' ? customFileType : (type ?? 'image');
               const mediaUrl = type === 'custom' ? customFileUrl : media;
