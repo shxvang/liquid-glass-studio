@@ -6,18 +6,18 @@
 
 The Ultimate Web Recreation of Apple’s Liquid Glass UI, powered by WebGL2 and shaders. Includes most Liquid Glass features with fine-grained controls for detailed customization.
 
-<p align="center">
-<img src="./.github/assets/title-video.gif" width="480" >
-</p>
-
 ## Online Demo
 
 https://liquid-glass-studio.vercel.app/
+
+For users in mainland China, please visit:  
+https://liquid-glass.iyinchao.cn/
 
 ## ScreenShots
 
 <table align="center">
   <tr>
+    <td><img src="./.github/assets/title-video.gif" width="240" ></td>
     <td><img src="./.github/assets/screen-shot-1.png" width="240" /></td>
     <td><img src="./.github/assets/screen-shot-2.png" width="240" /></td>
   </tr>
