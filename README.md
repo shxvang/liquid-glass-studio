@@ -84,9 +84,12 @@ pnpm build
 
 - [x] More Glare Controls (hardness / color / size etc.)
 - [x] Custom Background
+- [ ] Render with WebGPU
+- [ ] Editor mode
+- [ ] Glass Text Rendering
+- [ ] Glass Presets
 - [ ] Self-illumination
 - [ ] HDR illumination
-- [ ] Glass Presets
 - [ ] Control parameter import / export
 - [x] Render Step view to show intermediate results
 - [ ] UI Content inside of shape
