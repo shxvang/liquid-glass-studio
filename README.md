@@ -10,8 +10,33 @@ The Ultimate Web Recreation of Apple’s Liquid Glass UI, powered by WebGL2 and 
 
 https://liquid-glass-studio.vercel.app/
 
-For users in mainland China, please visit:  
+For users in mainland China, please visit:
 https://liquid-glass.iyinchao.cn/
+
+## Sheeshmahal: 3D Shadcn Extensions
+
+Alongside the playground we now ship **Sheeshmahal** – a monorepo that translates Shadcn/UI components into fully volumetric, glassmorphic counterparts rendered in React Three Fiber.
+
+### Quickstart
+
+```bash
+pnpm install
+pnpm dev
+```
+
+Open the developer playground and explore the new `packages/` directory to inspect the reusable Sheeshmahal packages. The fastest path is the Next.js integration example under `examples/next-app`.
+
+### Packages Overview
+
+- `packages/core`: Material and animation primitives shared across runtimes.
+- `packages/react`: React bindings, `<SMCanvasProvider>`, and 3D component implementations (`SMButton3D`, `SMCard3D`, `SMModal3D`).
+- `packages/presets`: Glass themes and animation preset exports.
+
+### Documentation
+
+- [`docs/GETTING_STARTED.md`](docs/GETTING_STARTED.md) – installation guide and usage snippets.
+- [`docs/DESIGN_GUIDELINES.md`](docs/DESIGN_GUIDELINES.md) – glassmorphism palette, motion rules, accessibility notes.
+- [`docs/COMPONENT_MAP.md`](docs/COMPONENT_MAP.md) – snapshot of Shadcn/UI to Sheeshmahal mappings.
 
 ## ScreenShots
 
