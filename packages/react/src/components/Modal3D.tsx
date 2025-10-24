@@ -4,12 +4,12 @@ import { useFrame } from '@react-three/fiber';
 import clsx from 'clsx';
 import { Fragment, useEffect, useId, useRef } from 'react';
 import type { ReactNode } from 'react';
+import { Color, type Group } from 'three';
 import type { GlassLevel } from '../../../core/src/index.js';
 import { useSMCanvas } from '../canvas/CanvasProvider.js';
-import { useGlassMaterial } from '../hooks/useGlassMaterial.js';
 import { useSpringPreset } from '../hooks/useSpringPreset.js';
 import { SMButton3D } from './Button3D.js';
-import type { Group } from 'three';
+import { useLiquidGlassSurface } from '../hooks/useLiquidGlassSurface.js';
 
 export interface SMModal3DProps {
   open: boolean;
@@ -33,7 +33,13 @@ export const SMModal3D = ({
   closeLabel = 'Close',
 }: SMModal3DProps) => {
   const { theme, reducedMotion } = useSMCanvas();
-  const glassMaterial = useGlassMaterial({ glassLevel, accentColor: theme.accentColor });
+  const surface = useLiquidGlassSurface({
+    width: 4,
+    height: 2.6,
+    radius: 0.28,
+    glassLevel,
+    theme,
+  });
   const { config, immediate } = useSpringPreset('entrance');
   const headingId = useId();
   const descriptionId = useId();
@@ -65,9 +71,13 @@ export const SMModal3D = ({
   return (
     <Fragment>
       <group ref={groupRef}>
-        <RoundedBox args={[4.2, 2.8, depth]} radius={0.22} smoothness={8}>
-          <meshPhysicalMaterial {...glassMaterial} />
+        <RoundedBox args={[4.3, 2.9, depth]} radius={0.26} smoothness={9}>
+          <meshStandardMaterial color={mixSurfaceColor(theme.backgroundColor, theme.accentColor)} roughness={0.5} metalness={0.15} />
         </RoundedBox>
+        <mesh position={[0, 0, depth / 2 + 0.01]}>
+          <planeGeometry args={[4, 2.6]} />
+          <primitive attach="material" object={surface.material} />
+        </mesh>
         <Html
           center
           transform
@@ -122,4 +132,11 @@ export const SMModal3D = ({
       ) : null}
     </Fragment>
   );
+};
+
+const mixSurfaceColor = (background: string, accent: string) => {
+  const base = new Color(background);
+  const tint = new Color(accent);
+  base.lerp(tint, 0.08);
+  return `#${base.convertLinearToSRGB().getHexString()}`;
 };

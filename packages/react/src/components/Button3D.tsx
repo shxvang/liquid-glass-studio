@@ -5,10 +5,11 @@ import clsx from 'clsx';
 import { useEffect, useRef, useState } from 'react';
 import type { ComponentPropsWithoutRef, ReactNode } from 'react';
 import type { Group } from 'three';
+import { Color, MathUtils } from 'three';
 import { useSMCanvas } from '../canvas/CanvasProvider.js';
-import { useGlassMaterial } from '../hooks/useGlassMaterial.js';
 import { useSpringPreset } from '../hooks/useSpringPreset.js';
 import type { GlassLevel } from '../../../core/src/index.js';
+import { useLiquidGlassSurface } from '../hooks/useLiquidGlassSurface.js';
 
 export interface SMButton3DProps extends ComponentPropsWithoutRef<'button'> {
   label?: ReactNode;
@@ -35,8 +36,15 @@ export const SMButton3D = ({
   const [pressed, setPressed] = useState(false);
   const [tilt, setTilt] = useState({ x: 0, y: 0 });
   const groupRef = useRef<Group>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
 
-  const glassMaterial = useGlassMaterial({ glassLevel, accentColor: theme.accentColor });
+  const surface = useLiquidGlassSurface({
+    width: 2.4,
+    height: 0.84,
+    radius: 0.38,
+    glassLevel,
+    theme,
+  });
   const { config, immediate } = useSpringPreset(animationPreset);
   const { children: buttonChildren, type, ...restProps } = buttonProps;
   const resolvedType = (type as SMButton3DProps['type']) ?? 'button';
@@ -72,59 +80,77 @@ export const SMButton3D = ({
     group.scale.set(scaleValue, scaleValue, scaleValue);
   });
 
+  const handlePointerFromButton = (event: React.PointerEvent<HTMLButtonElement>) => {
+    if (!buttonRef.current) return;
+    const rect = buttonRef.current.getBoundingClientRect();
+    const x = MathUtils.clamp((event.clientX - rect.left) / rect.width, 0, 1);
+    const y = MathUtils.clamp((event.clientY - rect.top) / rect.height, 0, 1);
+    surface.setPointer({ x, y });
+    setTilt({ x: (x - 0.5) * 2, y: (y - 0.5) * 2 });
+    return { x, y };
+  };
+
+  const handlePointerLeave = (event: React.PointerEvent<HTMLButtonElement>) => {
+    surface.setPointer(null);
+    setTilt({ x: 0, y: 0 });
+    setPressed(false);
+    onPointerOut?.(event);
+  };
+
   return (
     <group
       ref={groupRef}
-      onPointerOver={(event) => {
+      onPointerOver={() => {
         setHovered(true);
-        onPointerOver?.(event);
       }}
-      onPointerOut={(event) => {
+      onPointerOut={() => {
         setHovered(false);
-        setTilt({ x: 0, y: 0 });
-        setPressed(false);
-        onPointerOut?.(event);
-      }}
-      onPointerMove={(event) => {
-        if (reducedMotion) return;
-        if (event.uv) {
-          const x = (event.uv.x - 0.5) * 2;
-          const y = (event.uv.y - 0.5) * 2;
-          setTilt({ x: x, y: y });
-        }
-        onPointerMove?.(event);
-      }}
-      onPointerDown={(event) => {
-        setPressed(true);
-        onPointerDown?.(event);
-      }}
-      onPointerUp={(event) => {
-        setPressed(false);
-        onPointerUp?.(event);
+        surface.setPointer(null);
       }}
     >
-      <RoundedBox args={[2.6, 0.9, depth]} radius={0.18} smoothness={8}>
-        <meshPhysicalMaterial {...glassMaterial} />
+      <RoundedBox args={[2.7, 0.92, depth]} radius={0.22} smoothness={8}>
+        <meshStandardMaterial color={mixSurfaceColor(theme.backgroundColor, theme.accentColor)} roughness={0.45} metalness={0.2} />
       </RoundedBox>
-      <Html
-        center
-        transform
-        occlude
-        pointerEvents="auto"
-        style={{
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          width: '100%',
-          height: '100%',
-        }}
-      >
+      <mesh position={[0, 0, depth / 2 + 0.01]}>
+        <planeGeometry args={[2.4, 0.84]} />
+        <primitive attach="material" object={surface.material} />
+      </mesh>
+      <Html center transform occlude pointerEvents="auto">
         <button
+          ref={buttonRef}
           type={resolvedType}
           className={clsx(
-            'sm-button3d inline-flex min-w-[8rem] items-center justify-center rounded-full border border-white/40 bg-white/10 px-6 py-2 text-sm font-medium text-white shadow-[0_0_40px_rgba(96,165,250,0.45)] backdrop-blur-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/80',
+            'sm-button3d relative inline-flex min-w-[8rem] items-center justify-center rounded-full border border-white/30 bg-transparent px-6 py-2 text-sm font-semibold text-white/95 backdrop-blur-none focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-200/70',
             className
           )}
+          style={{ background: 'transparent' }}
+          onPointerOver={(event) => {
+            handlePointerFromButton(event);
+            setHovered(true);
+            onPointerOver?.(event);
+          }}
+          onPointerMove={(event) => {
+            if (reducedMotion) {
+              onPointerMove?.(event);
+              return;
+            }
+            const coords = handlePointerFromButton(event);
+            if (coords) {
+              onPointerMove?.(event);
+            }
+          }}
+          onPointerLeave={(event) => {
+            setHovered(false);
+            handlePointerLeave(event);
+          }}
+          onPointerDown={(event) => {
+            setPressed(true);
+            onPointerDown?.(event);
+          }}
+          onPointerUp={(event) => {
+            setPressed(false);
+            onPointerUp?.(event);
+          }}
           {...restProps}
         >
           {content}
@@ -132,4 +158,11 @@ export const SMButton3D = ({
       </Html>
     </group>
   );
+};
+
+const mixSurfaceColor = (background: string, accent: string) => {
+  const base = new Color(background);
+  const tint = new Color(accent);
+  base.lerp(tint, 0.12);
+  return `#${base.convertLinearToSRGB().getHexString()}`;
 };

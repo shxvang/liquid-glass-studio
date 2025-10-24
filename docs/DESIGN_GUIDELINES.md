@@ -23,6 +23,7 @@ These guidelines help maintain visual and experiential coherence across Sheeshma
 - Use a three-point setup: warm key light, cool fill, and subtle rim light to outline silhouettes.
 - Load HDR environments lazily (`drei/Environment`) to keep initial bundle lean.
 - Share geometries and materials when possible to leverage GPU instancing.
+- All foreground panels should consume the shared Liquid Glass shader material (`useLiquidGlassSurface`) so dispersion, fresnel bloom, and glare stay visually consistent across components.
 
 ## Accessibility
 

@@ -49,6 +49,8 @@ export const ControlPanel = () => (
 
 Each component renders an accessible HTML surface via `Html` from `drei`, so keyboard navigation and focus rings still work while the 3D shell animates independently.
 
+> 🔬 Under the hood every front-facing surface now streams the **Liquid Glass Studio** multipass shader. The blurred background and dispersion textures are generated on-demand and pushed into a GLSL3 material, so you get the exact refraction, fresnel bloom, and glare authored in the original playground—just mapped onto R3F geometry.
+
 ## Reduced Motion & Accessibility
 
 The provider reads `prefers-reduced-motion` and disables high-frequency rotation when users opt out of motion. Override animation presets per component via `useSpringPreset` or props.

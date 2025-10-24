@@ -31,6 +31,7 @@ Open the developer playground and explore the new `packages/` directory to inspe
 - `packages/core`: Material and animation primitives shared across runtimes.
 - `packages/react`: React bindings, `<SMCanvasProvider>`, and 3D component implementations (`SMButton3D`, `SMCard3D`, `SMModal3D`).
 - `packages/presets`: Glass themes and animation preset exports.
+- All React components reuse the Liquid Glass Studio multipass shader, so the refraction and glare you tweak in the playground appear identically inside Sheeshmahal scenes.
 
 ### Documentation
 
